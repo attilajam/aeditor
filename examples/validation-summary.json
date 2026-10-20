@@ -1,0 +1,487 @@
+{
+  "tests": "34 passed in 26.84s",
+  "real": {
+    "version": 1,
+    "valid": true,
+    "video": "/home/attila/Documents/edit/examples/real.mp4",
+    "errors": [],
+    "warnings": [],
+    "decoded_frames": 625,
+    "duration": 20.833333333333336,
+    "expected_frames": 625,
+    "max_beat_error_seconds": 0.016326530612245094,
+    "audio_alignment": {
+      "valid": true,
+      "correlation": 0.9881698878031114,
+      "lag_seconds": 0.0,
+      "silence": false,
+      "comparison_seconds": 5.0
+    },
+    "boundary_checks": [
+      {
+        "slot": 0,
+        "kind": "entry",
+        "output_frame": 0,
+        "source_frame": 63,
+        "normalized_pixel_mae": 0.007938768357137095,
+        "black_fraction": 0.6781925154320988
+      },
+      {
+        "slot": 0,
+        "kind": "exit",
+        "output_frame": 44,
+        "source_frame": 107,
+        "normalized_pixel_mae": 0.0083233100338901,
+        "black_fraction": 0.6772762345679012
+      },
+      {
+        "slot": 1,
+        "kind": "entry",
+        "output_frame": 45,
+        "source_frame": 43,
+        "normalized_pixel_mae": 0.0065595245299766,
+        "black_fraction": 0.6771315586419753
+      },
+      {
+        "slot": 1,
+        "kind": "exit",
+        "output_frame": 101,
+        "source_frame": 99,
+        "normalized_pixel_mae": 0.006584992536109093,
+        "black_fraction": 0.6771315586419753
+      },
+      {
+        "slot": 2,
+        "kind": "entry",
+        "output_frame": 102,
+        "source_frame": 63,
+        "normalized_pixel_mae": 0.00557358488662955,
+        "black_fraction": 0.677758487654321
+      },
+      {
+        "slot": 2,
+        "kind": "exit",
+        "output_frame": 145,
+        "source_frame": 106,
+        "normalized_pixel_mae": 0.005760623436617446,
+        "black_fraction": 0.677758487654321
+      },
+      {
+        "slot": 3,
+        "kind": "entry",
+        "output_frame": 146,
+        "source_frame": 30,
+        "normalized_pixel_mae": 0.005786532720083918,
+        "black_fraction": 0.6770833333333334
+      },
+      {
+        "slot": 3,
+        "kind": "exit",
+        "output_frame": 189,
+        "source_frame": 73,
+        "normalized_pixel_mae": 0.005611030420398612,
+        "black_fraction": 0.677758487654321
+      },
+      {
+        "slot": 4,
+        "kind": "entry",
+        "output_frame": 190,
+        "source_frame": 13,
+        "normalized_pixel_mae": 0.006572951968853385,
+        "black_fraction": 0.6772762345679012
+      },
+      {
+        "slot": 4,
+        "kind": "exit",
+        "output_frame": 232,
+        "source_frame": 55,
+        "normalized_pixel_mae": 0.006818869523117889,
+        "black_fraction": 0.6775173611111112
+      },
+      {
+        "slot": 5,
+        "kind": "entry",
+        "output_frame": 233,
+        "source_frame": 190,
+        "normalized_pixel_mae": 0.006181791132090697,
+        "black_fraction": 0.6780960648148148
+      },
+      {
+        "slot": 5,
+        "kind": "exit",
+        "output_frame": 276,
+        "source_frame": 233,
+        "normalized_pixel_mae": 0.006187401658194142,
+        "black_fraction": 0.6780960648148148
+      },
+      {
+        "slot": 6,
+        "kind": "entry",
+        "output_frame": 277,
+        "source_frame": 58,
+        "normalized_pixel_mae": 0.005840557673686759,
+        "black_fraction": 0.6786747685185185
+      },
+      {
+        "slot": 6,
+        "kind": "exit",
+        "output_frame": 319,
+        "source_frame": 100,
+        "normalized_pixel_mae": 0.005827382393286533,
+        "black_fraction": 0.6787229938271605
+      },
+      {
+        "slot": 7,
+        "kind": "entry",
+        "output_frame": 320,
+        "source_frame": 23,
+        "normalized_pixel_mae": 0.005923896050189624,
+        "black_fraction": 0.6770833333333334
+      },
+      {
+        "slot": 7,
+        "kind": "exit",
+        "output_frame": 363,
+        "source_frame": 66,
+        "normalized_pixel_mae": 0.006136780844024853,
+        "black_fraction": 0.6770833333333334
+      },
+      {
+        "slot": 8,
+        "kind": "entry",
+        "output_frame": 364,
+        "source_frame": 3,
+        "normalized_pixel_mae": 0.006214949971758251,
+        "black_fraction": 0.6790123456790124
+      },
+      {
+        "slot": 8,
+        "kind": "exit",
+        "output_frame": 407,
+        "source_frame": 46,
+        "normalized_pixel_mae": 0.0061916253126765115,
+        "black_fraction": 0.6789158950617284
+      },
+      {
+        "slot": 9,
+        "kind": "entry",
+        "output_frame": 408,
+        "source_frame": 53,
+        "normalized_pixel_mae": 0.006790375615266683,
+        "black_fraction": 0.6787712191358025
+      },
+      {
+        "slot": 9,
+        "kind": "exit",
+        "output_frame": 450,
+        "source_frame": 95,
+        "normalized_pixel_mae": 0.007033834624384733,
+        "black_fraction": 0.6786265432098766
+      },
+      {
+        "slot": 10,
+        "kind": "entry",
+        "output_frame": 451,
+        "source_frame": 8,
+        "normalized_pixel_mae": 0.006026839748244977,
+        "black_fraction": 0.6794945987654321
+      },
+      {
+        "slot": 10,
+        "kind": "exit",
+        "output_frame": 494,
+        "source_frame": 51,
+        "normalized_pixel_mae": 0.006040267187121763,
+        "black_fraction": 0.6795428240740741
+      },
+      {
+        "slot": 11,
+        "kind": "entry",
+        "output_frame": 495,
+        "source_frame": 3,
+        "normalized_pixel_mae": 0.0068454722423949,
+        "black_fraction": 0.6778549382716049
+      },
+      {
+        "slot": 11,
+        "kind": "exit",
+        "output_frame": 537,
+        "source_frame": 45,
+        "normalized_pixel_mae": 0.00688815006455257,
+        "black_fraction": 0.6778549382716049
+      },
+      {
+        "slot": 12,
+        "kind": "entry",
+        "output_frame": 538,
+        "source_frame": 40,
+        "normalized_pixel_mae": 0.005672809247155653,
+        "black_fraction": 0.6773244598765432
+      },
+      {
+        "slot": 12,
+        "kind": "exit",
+        "output_frame": 581,
+        "source_frame": 83,
+        "normalized_pixel_mae": 0.005798762406197046,
+        "black_fraction": 0.6772762345679012
+      },
+      {
+        "slot": 13,
+        "kind": "entry",
+        "output_frame": 582,
+        "source_frame": 33,
+        "normalized_pixel_mae": 0.005390643911885742,
+        "black_fraction": 0.6801215277777778
+      },
+      {
+        "slot": 13,
+        "kind": "exit",
+        "output_frame": 624,
+        "source_frame": 75,
+        "normalized_pixel_mae": 0.005491633381747761,
+        "black_fraction": 0.6805073302469136
+      }
+    ],
+    "fully_decoded": true,
+    "video_codec": "h264",
+    "pixel_format": "yuv420p",
+    "audio_codec": "aac",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "synthetic": {
+    "version": 1,
+    "valid": true,
+    "video": "/home/attila/Documents/edit/examples/synthetic.mp4",
+    "errors": [],
+    "warnings": [],
+    "decoded_frames": 120,
+    "duration": 5.0,
+    "expected_frames": 120,
+    "max_beat_error_seconds": 0.015113378684807444,
+    "audio_alignment": {
+      "valid": true,
+      "correlation": 0.9999948900416049,
+      "lag_seconds": 0.0,
+      "silence": false,
+      "comparison_seconds": 5.0
+    },
+    "boundary_checks": [
+      {
+        "slot": 0,
+        "kind": "entry",
+        "output_frame": 0,
+        "source_frame": 10,
+        "normalized_pixel_mae": 0.017831733387799566,
+        "black_fraction": 0.5520833333333334
+      },
+      {
+        "slot": 0,
+        "kind": "exit",
+        "output_frame": 45,
+        "source_frame": 66,
+        "normalized_pixel_mae": 0.01775450197440087,
+        "black_fraction": 0.5520833333333334
+      },
+      {
+        "slot": 1,
+        "kind": "entry",
+        "output_frame": 46,
+        "source_frame": 106,
+        "normalized_pixel_mae": 0.017726098686002178,
+        "black_fraction": 0.5520833333333334
+      },
+      {
+        "slot": 1,
+        "kind": "exit",
+        "output_frame": 80,
+        "source_frame": 140,
+        "normalized_pixel_mae": 0.01783008450776144,
+        "black_fraction": 0.5520833333333334
+      },
+      {
+        "slot": 2,
+        "kind": "entry",
+        "output_frame": 81,
+        "source_frame": 46,
+        "normalized_pixel_mae": 0.018420383561410677,
+        "black_fraction": 0.5520833333333334
+      },
+      {
+        "slot": 2,
+        "kind": "exit",
+        "output_frame": 119,
+        "source_frame": 84,
+        "normalized_pixel_mae": 0.01833969481889978,
+        "black_fraction": 0.5520833333333334
+      }
+    ],
+    "fully_decoded": true,
+    "video_codec": "h264",
+    "pixel_format": "yuv420p",
+    "audio_codec": "aac",
+    "width": 160,
+    "height": 240,
+    "fps": 24
+  },
+  "benchmark": {
+    "seed": 20261018,
+    "fixture": {
+      "duration": 6.0,
+      "fps": 24,
+      "size": [
+        160,
+        240
+      ],
+      "similar_sources": 3,
+      "mismatched_sources": 2,
+      "slots": 4,
+      "reuse": "forbid",
+      "known_transient_times": [
+        0.25,
+        0.75,
+        1.25,
+        1.75,
+        2.25,
+        2.75,
+        3.25,
+        3.75,
+        4.25,
+        4.75,
+        5.25,
+        5.75
+      ]
+    },
+    "cuts": {
+      "frames": [
+        0,
+        31,
+        66,
+        103,
+        144
+      ],
+      "seconds": [
+        1.2916666666666667,
+        2.75,
+        4.291666666666667
+      ],
+      "nearest_transient_offsets_seconds": [
+        0.04166666666666674,
+        0.0,
+        0.04166666666666696
+      ],
+      "mean_nearest_transient_offset_seconds": 0.0277777777777779,
+      "selected_beats": [
+        0.7662585034013606,
+        1.2770975056689342,
+        1.7647165532879818,
+        2.2755555555555556,
+        2.7631746031746034,
+        3.274013605442177,
+        3.7616326530612243,
+        4.272471655328798,
+        4.783310657596372,
+        5.270929705215419,
+        5.7817687074829935
+      ],
+      "audio_method": "beat_track"
+    },
+    "selected_sources": {
+      "enabled": [
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/match-c.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/match-b.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/match-a.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-b.mp4"
+      ],
+      "random": [
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/match-c.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-b.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-a.mp4",
+        "/home/attila/Documents/edit/examples/matching/fixture/videos/match-b.mp4"
+      ]
+    },
+    "selected_source_classes": {
+      "enabled": [
+        "similar",
+        "similar",
+        "similar",
+        "mismatched"
+      ],
+      "random": [
+        "similar",
+        "mismatched",
+        "mismatched",
+        "similar"
+      ]
+    },
+    "measured": {
+      "enabled": {
+        "31": {
+          "cut_frame": 31,
+          "cut_seconds": 1.2916666666666667,
+          "rgb_mae": 0.0073586939834058285,
+          "edge_mae": 0.0012433268129825592
+        },
+        "66": {
+          "cut_frame": 66,
+          "cut_seconds": 2.75,
+          "rgb_mae": 0.009158632718026638,
+          "edge_mae": 0.0013222710695117712
+        },
+        "103": {
+          "cut_frame": 103,
+          "cut_seconds": 4.291666666666667,
+          "rgb_mae": 0.2902875542640686,
+          "edge_mae": 0.026920750737190247
+        },
+        "mean": {
+          "rgb_mae": 0.10226829365516703,
+          "edge_mae": 0.009828782873228192
+        }
+      },
+      "random": {
+        "31": {
+          "cut_frame": 31,
+          "cut_seconds": 1.2916666666666667,
+          "rgb_mae": 0.2897559702396393,
+          "edge_mae": 0.026135887950658798
+        },
+        "66": {
+          "cut_frame": 66,
+          "cut_seconds": 2.75,
+          "rgb_mae": 0.3927123546600342,
+          "edge_mae": 0.015127125196158886
+        },
+        "103": {
+          "cut_frame": 103,
+          "cut_seconds": 4.291666666666667,
+          "rgb_mae": 0.4396499991416931,
+          "edge_mae": 0.023872751742601395
+        },
+        "mean": {
+          "rgb_mae": 0.3740394413471222,
+          "edge_mae": 0.02171192162980636
+        }
+      }
+    },
+    "rgb_mae_improvement_percent": 72.65841984822708,
+    "planning_seconds_including_analysis": 1.32193635800013
+  },
+  "versions": {
+    "autoedit": "0.1.0",
+    "python": "3.13.15",
+    "numpy": "2.5.4",
+    "librosa": "1.0.0",
+    "opencv-python": "5.0.0.93",
+    "scipy": "1.18.1",
+    "PyYAML": "6.0.3",
+    "ffmpeg": "ffmpeg version n9.0.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe": "ffprobe version n9.0.1 Copyright (c) 2007-2026 the FFmpeg developers"
+  },
+  "observations": {
+    "visual_review": "Inspected all 13 real outgoing/incoming pairs and both benchmark contact sheets. Similar poses and cool palettes often align, but some backgrounds and framing change abruptly. Contain padding is intentional; no inserted black joins were found.",
+    "audio_review": "Decoded waveform comparison passed with zero measured lag. This runtime has no subjective listening capability; listening quality has not been claimed."
+  }
+}

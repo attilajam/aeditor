@@ -1,0 +1,95 @@
+{
+  "selection": [
+    {
+      "slot": 0,
+      "clip": 8,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 4
+    },
+    {
+      "slot": 1,
+      "clip": 10,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 6
+    },
+    {
+      "slot": 2,
+      "clip": 9,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 5
+    },
+    {
+      "slot": 3,
+      "clip": 11,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 7
+    }
+  ],
+  "decoded_joint_transition_error": {
+    "description": "Mean per-landmark Euclidean displacement between the last decoded frame before each cut and the first decoded frame after it, normalized by frame diagonal; lower is more spatially consistent.",
+    "mean_diagonal_fraction": 0.24964496057010863,
+    "mean_pixels": 91.65744560246749,
+    "boundaries": [
+      {
+        "from_slot": 0,
+        "to_slot": 1,
+        "landmark_count": 13,
+        "rms_pixels": 66.43888376792052,
+        "rms_diagonal_fraction": 0.18095783064369006
+      },
+      {
+        "from_slot": 1,
+        "to_slot": 2,
+        "landmark_count": 12,
+        "rms_pixels": 129.08485646174793,
+        "rms_diagonal_fraction": 0.35158500970404155
+      },
+      {
+        "from_slot": 2,
+        "to_slot": 3,
+        "landmark_count": 12,
+        "rms_pixels": 79.44859657773402,
+        "rms_diagonal_fraction": 0.21639204136259424
+      }
+    ],
+    "boundary_frame_ground_truth_localization": [
+      {
+        "cut_frame": 36,
+        "localized_landmarks_per_side": 13,
+        "max_source_coordinate_error_pixels": 0.3605551275463981
+      },
+      {
+        "cut_frame": 72,
+        "localized_landmarks_per_side": 12,
+        "max_source_coordinate_error_pixels": 0.48452285466654516
+      },
+      {
+        "cut_frame": 108,
+        "localized_landmarks_per_side": 12,
+        "max_source_coordinate_error_pixels": 2.4244765248921354
+      }
+    ]
+  },
+  "decoded_marker_localization_failures": [
+    {
+      "slot": 2,
+      "landmark": "left_wrist"
+    }
+  ],
+  "plan": "legacy_palette/plan.json",
+  "video": "legacy_palette/edit.mp4",
+  "contact_sheet": "legacy_palette/contact-sheet.png",
+  "validation_valid": true,
+  "decoded_output_frames": 144,
+  "cut_frames": [
+    0,
+    36,
+    72,
+    108,
+    144
+  ]
+}

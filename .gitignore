@@ -1,0 +1,48 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local media analysis and test caches
+.autoedit-cache/
+.pytest_cache/
+.autoedit-review/
+cache/
+.cache/
+
+# User footage, source media and generated edits (never commit binaries)
+clips/
+cuts/
+*.mp3
+*.mp4
+*.mov
+*.wav
+*.m4a
+*.flac
+*.aac
+*.mkv
+*.webm
+*.avi
+*.ogg
+
+# Generated edit artifacts (plans, reports, validation, review drafts, logs).
+# Bare names included: "*.<x>" alone does not match a file literally named "<x>".
+*.plan.json
+plan.json
+*.validation.json
+validation.json
+*.report.html
+report.html
+*.review.json
+review.json
+*.log
+
+# Scratch
+/try2
+/try3

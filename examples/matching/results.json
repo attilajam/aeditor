@@ -1,0 +1,143 @@
+{
+  "seed": 20261018,
+  "fixture": {
+    "duration": 6.0,
+    "fps": 24,
+    "size": [
+      160,
+      240
+    ],
+    "similar_sources": 3,
+    "mismatched_sources": 2,
+    "slots": 4,
+    "reuse": "forbid",
+    "known_transient_times": [
+      0.25,
+      0.75,
+      1.25,
+      1.75,
+      2.25,
+      2.75,
+      3.25,
+      3.75,
+      4.25,
+      4.75,
+      5.25,
+      5.75
+    ]
+  },
+  "cuts": {
+    "frames": [
+      0,
+      31,
+      66,
+      103,
+      144
+    ],
+    "seconds": [
+      1.2916666666666667,
+      2.75,
+      4.291666666666667
+    ],
+    "nearest_transient_offsets_seconds": [
+      0.04166666666666674,
+      0.0,
+      0.04166666666666696
+    ],
+    "mean_nearest_transient_offset_seconds": 0.0277777777777779,
+    "selected_beats": [
+      0.7662585034013606,
+      1.2770975056689342,
+      1.7647165532879818,
+      2.2755555555555556,
+      2.7631746031746034,
+      3.274013605442177,
+      3.7616326530612243,
+      4.272471655328798,
+      4.783310657596372,
+      5.270929705215419,
+      5.7817687074829935
+    ],
+    "audio_method": "beat_track"
+  },
+  "selected_sources": {
+    "enabled": [
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/match-c.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/match-b.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/match-a.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-b.mp4"
+    ],
+    "random": [
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/match-c.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-b.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/mismatch-a.mp4",
+      "/home/attila/Documents/edit/examples/matching/fixture/videos/match-b.mp4"
+    ]
+  },
+  "selected_source_classes": {
+    "enabled": [
+      "similar",
+      "similar",
+      "similar",
+      "mismatched"
+    ],
+    "random": [
+      "similar",
+      "mismatched",
+      "mismatched",
+      "similar"
+    ]
+  },
+  "measured": {
+    "enabled": {
+      "31": {
+        "cut_frame": 31,
+        "cut_seconds": 1.2916666666666667,
+        "rgb_mae": 0.0073586939834058285,
+        "edge_mae": 0.0012433268129825592
+      },
+      "66": {
+        "cut_frame": 66,
+        "cut_seconds": 2.75,
+        "rgb_mae": 0.009158632718026638,
+        "edge_mae": 0.0013222710695117712
+      },
+      "103": {
+        "cut_frame": 103,
+        "cut_seconds": 4.291666666666667,
+        "rgb_mae": 0.2902875542640686,
+        "edge_mae": 0.026920750737190247
+      },
+      "mean": {
+        "rgb_mae": 0.10226829365516703,
+        "edge_mae": 0.009828782873228192
+      }
+    },
+    "random": {
+      "31": {
+        "cut_frame": 31,
+        "cut_seconds": 1.2916666666666667,
+        "rgb_mae": 0.2897559702396393,
+        "edge_mae": 0.026135887950658798
+      },
+      "66": {
+        "cut_frame": 66,
+        "cut_seconds": 2.75,
+        "rgb_mae": 0.3927123546600342,
+        "edge_mae": 0.015127125196158886
+      },
+      "103": {
+        "cut_frame": 103,
+        "cut_seconds": 4.291666666666667,
+        "rgb_mae": 0.4396499991416931,
+        "edge_mae": 0.023872751742601395
+      },
+      "mean": {
+        "rgb_mae": 0.3740394413471222,
+        "edge_mae": 0.02171192162980636
+      }
+    }
+  },
+  "rgb_mae_improvement_percent": 72.65841984822708,
+  "planning_seconds_including_analysis": 1.32193635800013
+}

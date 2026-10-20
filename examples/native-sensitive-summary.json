@@ -1,0 +1,730 @@
+{
+  "plan_version": 1,
+  "tool_version": "0.2.0",
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "total_frames": 625,
+    "duration": 20.833333333333332,
+    "fit": "contain"
+  },
+  "shots": 42,
+  "unique_clips": 42,
+  "detected_beats": 41,
+  "detected_onsets": 112,
+  "sensitivity": {
+    "sensitivity": 2.0,
+    "hop_length": 362,
+    "onset_detection": {
+      "pre_max": 2,
+      "post_max": 1,
+      "pre_avg": 6,
+      "post_avg": 7,
+      "wait": 1,
+      "delta": 0.035
+    },
+    "beat_tightness": 70.71067811865474,
+    "analysis_version": 2,
+    "librosa_version": "1.0.0"
+  },
+  "validation": {
+    "version": 1,
+    "valid": true,
+    "video": "/home/attila/Documents/edit/edit.mp4",
+    "errors": [],
+    "warnings": [],
+    "decoded_frames": 625,
+    "duration": 20.833333333333336,
+    "expected_frames": 625,
+    "max_beat_error_seconds": 0.01659863945578266,
+    "audio_alignment": {
+      "valid": true,
+      "correlation": 0.9881698878031114,
+      "lag_seconds": 0.0,
+      "silence": false,
+      "comparison_seconds": 5.0
+    },
+    "boundary_checks": [
+      {
+        "slot": 0,
+        "kind": "entry",
+        "output_frame": 0,
+        "source_frame": 52,
+        "normalized_pixel_mae": 0.001029941297506657,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 0,
+        "kind": "exit",
+        "output_frame": 29,
+        "source_frame": 81,
+        "normalized_pixel_mae": 0.001243078249818446,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 1,
+        "kind": "entry",
+        "output_frame": 30,
+        "source_frame": 35,
+        "normalized_pixel_mae": 0.0006782432623255064,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 1,
+        "kind": "exit",
+        "output_frame": 43,
+        "source_frame": 48,
+        "normalized_pixel_mae": 0.0012549296982167352,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 2,
+        "kind": "entry",
+        "output_frame": 44,
+        "source_frame": 118,
+        "normalized_pixel_mae": 0.0009059423666585975,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 2,
+        "kind": "exit",
+        "output_frame": 58,
+        "source_frame": 132,
+        "normalized_pixel_mae": 0.0012540471435487776,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 3,
+        "kind": "entry",
+        "output_frame": 59,
+        "source_frame": 140,
+        "normalized_pixel_mae": 0.0008368509440813362,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 3,
+        "kind": "exit",
+        "output_frame": 72,
+        "source_frame": 153,
+        "normalized_pixel_mae": 0.0011917009602194788,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 4,
+        "kind": "entry",
+        "output_frame": 73,
+        "source_frame": 33,
+        "normalized_pixel_mae": 0.001269744008714597,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 4,
+        "kind": "exit",
+        "output_frame": 87,
+        "source_frame": 47,
+        "normalized_pixel_mae": 0.0018910624949568305,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 5,
+        "kind": "entry",
+        "output_frame": 88,
+        "source_frame": 25,
+        "normalized_pixel_mae": 0.0007599426087307351,
+        "black_fraction": 0.004484953703703704
+      },
+      {
+        "slot": 5,
+        "kind": "exit",
+        "output_frame": 101,
+        "source_frame": 38,
+        "normalized_pixel_mae": 0.0008517913338174775,
+        "black_fraction": 0.0042920524691358024
+      },
+      {
+        "slot": 6,
+        "kind": "entry",
+        "output_frame": 102,
+        "source_frame": 80,
+        "normalized_pixel_mae": 0.0012380350802872588,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 6,
+        "kind": "exit",
+        "output_frame": 116,
+        "source_frame": 94,
+        "normalized_pixel_mae": 0.001681581840555152,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 7,
+        "kind": "entry",
+        "output_frame": 117,
+        "source_frame": 18,
+        "normalized_pixel_mae": 0.0011062822762849995,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 7,
+        "kind": "exit",
+        "output_frame": 131,
+        "source_frame": 32,
+        "normalized_pixel_mae": 0.0017913338174776082,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 8,
+        "kind": "entry",
+        "output_frame": 132,
+        "source_frame": 128,
+        "normalized_pixel_mae": 0.0010934852335996127,
+        "black_fraction": 0.013213734567901234
+      },
+      {
+        "slot": 8,
+        "kind": "exit",
+        "output_frame": 145,
+        "source_frame": 141,
+        "normalized_pixel_mae": 0.0011972484467037844,
+        "black_fraction": 0.01306905864197531
+      },
+      {
+        "slot": 9,
+        "kind": "entry",
+        "output_frame": 146,
+        "source_frame": 80,
+        "normalized_pixel_mae": 0.0010433056967643025,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 9,
+        "kind": "exit",
+        "output_frame": 160,
+        "source_frame": 94,
+        "normalized_pixel_mae": 0.0011808581457274268,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 10,
+        "kind": "entry",
+        "output_frame": 161,
+        "source_frame": 200,
+        "normalized_pixel_mae": 0.0009853722867747923,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 10,
+        "kind": "exit",
+        "output_frame": 174,
+        "source_frame": 213,
+        "normalized_pixel_mae": 0.0010797425966271282,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 11,
+        "kind": "entry",
+        "output_frame": 175,
+        "source_frame": 28,
+        "normalized_pixel_mae": 0.0008352749536028402,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 11,
+        "kind": "exit",
+        "output_frame": 189,
+        "source_frame": 42,
+        "normalized_pixel_mae": 0.0013608362583716613,
+        "black_fraction": 0.00028935185185185184
+      },
+      {
+        "slot": 12,
+        "kind": "entry",
+        "output_frame": 190,
+        "source_frame": 215,
+        "normalized_pixel_mae": 0.0008915693334947147,
+        "black_fraction": 0.0005787037037037037
+      },
+      {
+        "slot": 12,
+        "kind": "exit",
+        "output_frame": 203,
+        "source_frame": 228,
+        "normalized_pixel_mae": 0.0009764837004760751,
+        "black_fraction": 0.0005787037037037037
+      },
+      {
+        "slot": 13,
+        "kind": "entry",
+        "output_frame": 204,
+        "source_frame": 63,
+        "normalized_pixel_mae": 0.0012287682562737029,
+        "black_fraction": 4.8225308641975306e-05
+      },
+      {
+        "slot": 13,
+        "kind": "exit",
+        "output_frame": 218,
+        "source_frame": 77,
+        "normalized_pixel_mae": 0.002093860949729686,
+        "black_fraction": 9.645061728395061e-05
+      },
+      {
+        "slot": 14,
+        "kind": "entry",
+        "output_frame": 219,
+        "source_frame": 63,
+        "normalized_pixel_mae": 0.0007980815783103365,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 14,
+        "kind": "exit",
+        "output_frame": 232,
+        "source_frame": 76,
+        "normalized_pixel_mae": 0.001557141632373114,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 15,
+        "kind": "entry",
+        "output_frame": 233,
+        "source_frame": 28,
+        "normalized_pixel_mae": 0.0013943733357540547,
+        "black_fraction": 0.000626929012345679
+      },
+      {
+        "slot": 15,
+        "kind": "exit",
+        "output_frame": 246,
+        "source_frame": 41,
+        "normalized_pixel_mae": 0.001992745400629388,
+        "black_fraction": 0.00028935185185185184
+      },
+      {
+        "slot": 16,
+        "kind": "entry",
+        "output_frame": 247,
+        "source_frame": 78,
+        "normalized_pixel_mae": 0.0011302373315581378,
+        "black_fraction": 9.645061728395061e-05
+      },
+      {
+        "slot": 16,
+        "kind": "exit",
+        "output_frame": 261,
+        "source_frame": 92,
+        "normalized_pixel_mae": 0.0017494755103687565,
+        "black_fraction": 9.645061728395061e-05
+      },
+      {
+        "slot": 17,
+        "kind": "entry",
+        "output_frame": 262,
+        "source_frame": 120,
+        "normalized_pixel_mae": 0.0007913363390623739,
+        "black_fraction": 0.015432098765432098
+      },
+      {
+        "slot": 17,
+        "kind": "exit",
+        "output_frame": 275,
+        "source_frame": 133,
+        "normalized_pixel_mae": 0.0009048706931332203,
+        "black_fraction": 0.015528549382716049
+      },
+      {
+        "slot": 18,
+        "kind": "entry",
+        "output_frame": 276,
+        "source_frame": 68,
+        "normalized_pixel_mae": 0.001240682744291132,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 18,
+        "kind": "exit",
+        "output_frame": 290,
+        "source_frame": 82,
+        "normalized_pixel_mae": 0.00181768437827806,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 19,
+        "kind": "entry",
+        "output_frame": 291,
+        "source_frame": 10,
+        "normalized_pixel_mae": 0.0008200824053901396,
+        "black_fraction": 0.0005304783950617284
+      },
+      {
+        "slot": 19,
+        "kind": "exit",
+        "output_frame": 304,
+        "source_frame": 23,
+        "normalized_pixel_mae": 0.0011383694424271767,
+        "black_fraction": 0.0005787037037037037
+      },
+      {
+        "slot": 20,
+        "kind": "entry",
+        "output_frame": 305,
+        "source_frame": 45,
+        "normalized_pixel_mae": 0.0009658300048414427,
+        "black_fraction": 0.009693287037037037
+      },
+      {
+        "slot": 20,
+        "kind": "exit",
+        "output_frame": 319,
+        "source_frame": 59,
+        "normalized_pixel_mae": 0.0011661068748487049,
+        "black_fraction": 0.009645061728395061
+      },
+      {
+        "slot": 21,
+        "kind": "entry",
+        "output_frame": 320,
+        "source_frame": 25,
+        "normalized_pixel_mae": 0.0012119997175825063,
+        "black_fraction": 0.010802469135802469
+      },
+      {
+        "slot": 21,
+        "kind": "exit",
+        "output_frame": 333,
+        "source_frame": 38,
+        "normalized_pixel_mae": 0.0018214037158073106,
+        "black_fraction": 0.009114583333333334
+      },
+      {
+        "slot": 22,
+        "kind": "entry",
+        "output_frame": 334,
+        "source_frame": 28,
+        "normalized_pixel_mae": 0.0006445170660856936,
+        "black_fraction": 0.001880787037037037
+      },
+      {
+        "slot": 22,
+        "kind": "exit",
+        "output_frame": 348,
+        "source_frame": 42,
+        "normalized_pixel_mae": 0.0007680116799806343,
+        "black_fraction": 0.0019290123456790122
+      },
+      {
+        "slot": 23,
+        "kind": "entry",
+        "output_frame": 349,
+        "source_frame": 0,
+        "normalized_pixel_mae": 0.0004635933591543613,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 23,
+        "kind": "exit",
+        "output_frame": 362,
+        "source_frame": 11,
+        "normalized_pixel_mae": 0.0012331810296134916,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 24,
+        "kind": "entry",
+        "output_frame": 363,
+        "source_frame": 38,
+        "normalized_pixel_mae": 0.0008378595779875736,
+        "black_fraction": 0.007378472222222222
+      },
+      {
+        "slot": 24,
+        "kind": "exit",
+        "output_frame": 377,
+        "source_frame": 49,
+        "normalized_pixel_mae": 0.0014833852779795047,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 25,
+        "kind": "entry",
+        "output_frame": 378,
+        "source_frame": 33,
+        "normalized_pixel_mae": 0.0006038565117404987,
+        "black_fraction": 0.0010127314814814814
+      },
+      {
+        "slot": 25,
+        "kind": "exit",
+        "output_frame": 392,
+        "source_frame": 47,
+        "normalized_pixel_mae": 0.000691544621964012,
+        "black_fraction": 0.0010127314814814814
+      },
+      {
+        "slot": 26,
+        "kind": "entry",
+        "output_frame": 393,
+        "source_frame": 48,
+        "normalized_pixel_mae": 0.0008332576857903656,
+        "black_fraction": 0.004581404320987655
+      },
+      {
+        "slot": 26,
+        "kind": "exit",
+        "output_frame": 406,
+        "source_frame": 61,
+        "normalized_pixel_mae": 0.0010491683813443073,
+        "black_fraction": 0.0039544753086419755
+      },
+      {
+        "slot": 27,
+        "kind": "entry",
+        "output_frame": 407,
+        "source_frame": 80,
+        "normalized_pixel_mae": 0.0007344115629791011,
+        "black_fraction": 0.003616898148148148
+      },
+      {
+        "slot": 27,
+        "kind": "exit",
+        "output_frame": 421,
+        "source_frame": 94,
+        "normalized_pixel_mae": 0.000934436274509804,
+        "black_fraction": 0.0033275462962962963
+      },
+      {
+        "slot": 28,
+        "kind": "entry",
+        "output_frame": 422,
+        "source_frame": 40,
+        "normalized_pixel_mae": 0.0007653009763576213,
+        "black_fraction": 0.00014467592592592592
+      },
+      {
+        "slot": 28,
+        "kind": "exit",
+        "output_frame": 435,
+        "source_frame": 53,
+        "normalized_pixel_mae": 0.0008120133341402404,
+        "black_fraction": 0.00014467592592592592
+      },
+      {
+        "slot": 29,
+        "kind": "entry",
+        "output_frame": 436,
+        "source_frame": 3,
+        "normalized_pixel_mae": 0.001073627753570564,
+        "black_fraction": 0.0021219135802469135
+      },
+      {
+        "slot": 29,
+        "kind": "exit",
+        "output_frame": 450,
+        "source_frame": 17,
+        "normalized_pixel_mae": 0.0015782599047849592,
+        "black_fraction": 0.004099151234567901
+      },
+      {
+        "slot": 30,
+        "kind": "entry",
+        "output_frame": 451,
+        "source_frame": 160,
+        "normalized_pixel_mae": 0.0007647966594045026,
+        "black_fraction": 0.00853587962962963
+      },
+      {
+        "slot": 30,
+        "kind": "exit",
+        "output_frame": 464,
+        "source_frame": 173,
+        "normalized_pixel_mae": 0.001095376422173808,
+        "black_fraction": 0.00882523148148148
+      },
+      {
+        "slot": 31,
+        "kind": "entry",
+        "output_frame": 465,
+        "source_frame": 45,
+        "normalized_pixel_mae": 0.0007543320826272896,
+        "black_fraction": 0.0078125
+      },
+      {
+        "slot": 31,
+        "kind": "exit",
+        "output_frame": 479,
+        "source_frame": 59,
+        "normalized_pixel_mae": 0.0010537072339223757,
+        "black_fraction": 0.0078125
+      },
+      {
+        "slot": 32,
+        "kind": "entry",
+        "output_frame": 480,
+        "source_frame": 100,
+        "normalized_pixel_mae": 0.0011812994230614056,
+        "black_fraction": 0.01335841049382716
+      },
+      {
+        "slot": 32,
+        "kind": "exit",
+        "output_frame": 493,
+        "source_frame": 113,
+        "normalized_pixel_mae": 0.001724574860808521,
+        "black_fraction": 0.013406635802469136
+      },
+      {
+        "slot": 33,
+        "kind": "entry",
+        "output_frame": 494,
+        "source_frame": 63,
+        "normalized_pixel_mae": 0.0010776622891955137,
+        "black_fraction": 0.000626929012345679
+      },
+      {
+        "slot": 33,
+        "kind": "exit",
+        "output_frame": 507,
+        "source_frame": 76,
+        "normalized_pixel_mae": 0.00175199709513435,
+        "black_fraction": 0.0005304783950617284
+      },
+      {
+        "slot": 34,
+        "kind": "entry",
+        "output_frame": 508,
+        "source_frame": 103,
+        "normalized_pixel_mae": 0.0011005456709432743,
+        "black_fraction": 0.03043016975308642
+      },
+      {
+        "slot": 34,
+        "kind": "exit",
+        "output_frame": 522,
+        "source_frame": 117,
+        "normalized_pixel_mae": 0.001204371923666586,
+        "black_fraction": 0.030671296296296297
+      },
+      {
+        "slot": 35,
+        "kind": "entry",
+        "output_frame": 523,
+        "source_frame": 38,
+        "normalized_pixel_mae": 0.0014790985838779957,
+        "black_fraction": 0.02922453703703704
+      },
+      {
+        "slot": 35,
+        "kind": "exit",
+        "output_frame": 537,
+        "source_frame": 52,
+        "normalized_pixel_mae": 0.0021431579318970384,
+        "black_fraction": 0.015576774691358024
+      },
+      {
+        "slot": 36,
+        "kind": "entry",
+        "output_frame": 538,
+        "source_frame": 40,
+        "normalized_pixel_mae": 0.0013012638182845154,
+        "black_fraction": 0.022087191358024692
+      },
+      {
+        "slot": 36,
+        "kind": "exit",
+        "output_frame": 551,
+        "source_frame": 53,
+        "normalized_pixel_mae": 0.0020194111595255386,
+        "black_fraction": 0.021508487654320986
+      },
+      {
+        "slot": 37,
+        "kind": "entry",
+        "output_frame": 552,
+        "source_frame": 73,
+        "normalized_pixel_mae": 0.0007122846566610183,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 37,
+        "kind": "exit",
+        "output_frame": 565,
+        "source_frame": 86,
+        "normalized_pixel_mae": 0.0011451777212942791,
+        "black_fraction": 0.0
+      },
+      {
+        "slot": 38,
+        "kind": "entry",
+        "output_frame": 566,
+        "source_frame": 0,
+        "normalized_pixel_mae": 0.0008321229726458484,
+        "black_fraction": 0.033130787037037035
+      },
+      {
+        "slot": 38,
+        "kind": "exit",
+        "output_frame": 580,
+        "source_frame": 14,
+        "normalized_pixel_mae": 0.002153307310578552,
+        "black_fraction": 0.03665123456790124
+      },
+      {
+        "slot": 39,
+        "kind": "entry",
+        "output_frame": 581,
+        "source_frame": 103,
+        "normalized_pixel_mae": 0.000789760348583878,
+        "black_fraction": 0.03438464506172839
+      },
+      {
+        "slot": 39,
+        "kind": "exit",
+        "output_frame": 594,
+        "source_frame": 116,
+        "normalized_pixel_mae": 0.001505196986201888,
+        "black_fraction": 0.043209876543209874
+      },
+      {
+        "slot": 40,
+        "kind": "entry",
+        "output_frame": 595,
+        "source_frame": 95,
+        "normalized_pixel_mae": 0.001140512789477931,
+        "black_fraction": 0.00024112654320987653
+      },
+      {
+        "slot": 40,
+        "kind": "exit",
+        "output_frame": 609,
+        "source_frame": 109,
+        "normalized_pixel_mae": 0.0016555464778503994,
+        "black_fraction": 0.00043402777777777775
+      },
+      {
+        "slot": 41,
+        "kind": "entry",
+        "output_frame": 610,
+        "source_frame": 5,
+        "normalized_pixel_mae": 0.0007223079561042525,
+        "black_fraction": 0.011815200617283951
+      },
+      {
+        "slot": 41,
+        "kind": "exit",
+        "output_frame": 624,
+        "source_frame": 16,
+        "normalized_pixel_mae": 0.0008318077745501492,
+        "black_fraction": 0.019579475308641976
+      }
+    ],
+    "fully_decoded": true,
+    "video_codec": "h264",
+    "pixel_format": "yuv420p",
+    "audio_codec": "aac",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  }
+}

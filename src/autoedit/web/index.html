@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AutoEdit · Review</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="AutoEdit review"><span class="brand-mark">A</span><span>autoedit</span></a>
+      <div class="project-heading"><span class="eyebrow">REVIEW SESSION</span><strong id="project-title">Loading edit…</strong></div>
+      <div class="top-actions">
+        <span class="save-state" id="save-state" role="status"><i></i><span>Connecting</span></span>
+        <button class="button button-quiet" id="undo-button" title="Undo (Ctrl/⌘ Z)" disabled><span class="icon">↶</span> Undo</button>
+        <button class="button button-quiet" id="redo-button" title="Redo (Ctrl/⌘ Shift Z)" disabled><span class="icon">↷</span> Redo</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage-card" aria-label="Video preview">
+        <div class="stage-head"><div><span class="eyebrow">PREVIEW</span><span id="preview-state" class="preview-badge">Loading</span></div><div class="stage-meta" id="stage-meta">—</div></div>
+        <div class="video-stage" id="video-stage">
+          <video id="preview-video" playsinline muted preload="metadata"></video>
+          <div class="video-empty" id="video-empty"><div class="empty-symbol">▶</div><strong>Preview is ready when you are</strong><span>Render a preview to see your revised cut here.</span></div>
+          <div class="video-overlay"><span id="video-time">00:00.000</span><span class="stale-pill" id="stale-pill">OUT OF DATE</span></div>
+        </div>
+        <div class="transport">
+          <div class="transport-left"><button class="play-button" id="play-button" aria-label="Play" title="Play / pause (Space)">▶</button><button class="text-button" id="loop-button" title="Audition the selected cut">↻ <span>Loop cut</span></button><span class="transport-divider"></span><button class="text-button" id="add-marker-button" title="Add a manual cut at the playhead">＋ <span>Add cut</span></button></div>
+          <div class="transport-center"><span class="time-readout" id="current-time">00:00.000</span><span class="time-slash">/</span><span class="time-readout muted" id="total-time">00:00.000</span></div>
+          <button class="text-button transport-end" id="jump-selection-button" title="Jump to selected cut">Selected cut <span>↗</span></button>
+        </div>
+      </section>
+
+      <section class="timeline-card" aria-label="Audio timeline editor">
+        <div class="timeline-header">
+          <div class="section-title"><span class="eyebrow">CUT TIMELINE</span><span class="legend"><i class="legend-kept"></i>Kept cut <i class="legend-muted"></i>Available beat <i class="legend-quiet"></i>Quiet</span></div>
+          <div class="zoom-control"><span>Zoom</span><button id="zoom-out" aria-label="Zoom out">−</button><input id="zoom-range" type="range" min="1" max="8" value="1" aria-label="Waveform zoom"><button id="zoom-in" aria-label="Zoom in">＋</button></div>
+        </div>
+        <div class="timeline-tools">
+          <div class="tool-group"><button class="button button-small" id="range-mode-button" aria-pressed="false"><span class="icon">⌁</span> No cuts</button><label class="snap-label"><input type="checkbox" id="snap-toggle" checked><span class="checkmark"></span>Snap to onset</label><span class="tool-hint" id="tool-hint">Click a beat to keep or skip it · drag to fine-tune</span></div>
+          <div class="tool-group move-tools"><span class="tool-label">Selected</span><button class="button button-small group-enable" id="keep-selected" title="Keep selected cuts">Keep</button><button class="button button-small group-disable" id="skip-selected" title="Skip selected cuts">Skip</button><span class="tool-label">Keep only</span><button class="button button-small group-enable" id="keep-kicks" title="Keep only kick-drum cuts">Kicks</button><button class="button button-small group-enable" id="keep-beats" title="Keep only beat cuts">Beats</button><span class="tool-label nudge-label">Move</span><button class="button button-small nudge" data-nudge="-10" title="Shift selected markers back 10 frames">−10f</button><button class="button button-small nudge" data-nudge="-1" title="Shift selected markers back 1 frame">−1f</button><button class="button button-small nudge" data-nudge="1" title="Shift selected markers forward 1 frame">+1f</button><button class="button button-small nudge" data-nudge="10" title="Shift selected markers forward 10 frames">+10f</button></div>
+        </div>
+        <div class="wave-scroll" id="wave-scroll" tabindex="0" aria-label="Zoomable waveform. Use left and right arrows to nudge selected cuts.">
+          <div class="wave-inner" id="wave-inner"><div class="quiet-layer" id="quiet-layer"></div><div id="waveform"></div><div class="time-ruler" id="time-ruler"></div><div class="playhead" id="playhead"><span></span></div><div class="markers-layer" id="markers-layer"></div></div>
+        </div>
+        <div class="timeline-footer"><span id="selection-summary">No cut selected</span><span class="frame-info"><span id="frame-rate">— fps</span><span>·</span><span id="cut-count">0 kept cuts</span></span></div>
+      </section>
+
+      <section class="lower-grid">
+        <div class="panel range-panel">
+          <div class="panel-heading"><div><span class="eyebrow">NO-CUT RANGES</span><p>Remove kept cuts inside a frame range.</p></div><span class="panel-count" id="range-count">0</span></div>
+          <form id="range-form" class="range-form"><label>Start frame<input id="range-start" type="number" min="0" step="1" required></label><span class="range-separator">—</span><label>End frame · exclusive<input id="range-end" type="number" min="0" step="1" required></label><button class="button button-small button-add" type="submit">Add range</button></form>
+          <div class="range-list" id="range-list"><div class="empty-list">No ranges added</div></div>
+        </div>
+        <div class="panel marker-panel">
+          <div class="panel-heading"><div><span class="eyebrow">CUT POINTS</span><p>Choose a marker to select it. Toggle whether it makes a cut.</p></div><span class="panel-count" id="marker-count">0</span></div>
+          <div class="marker-list" id="marker-list" role="listbox" aria-label="Cut points"></div>
+        </div>
+      </section>
+
+      <section class="panel exports-panel" id="exports-panel" hidden>
+        <div class="panel-heading"><div><span class="eyebrow">RECENT EXPORTS</span><p>Completed videos and their validation files.</p></div><span class="panel-count" id="export-count">0</span></div>
+        <div class="exports-list" id="exports-list"></div>
+      </section>
+
+      <footer class="bottom-bar"><div class="bottom-note"><span class="status-dot"></span><span id="edit-summary">Changes save automatically</span></div><div class="bottom-actions"><button class="button button-quiet" id="reset-button">Reset edits</button><button class="button button-secondary" id="preview-button">Update preview <span>↗</span></button><button class="button button-primary" id="export-button">Export video <span>⇧</span></button></div></footer>
+      <div class="notice" id="notice" role="alert" hidden><div class="notice-body"><span id="notice-text"></span><div class="notice-links" id="notice-links"></div></div><button id="notice-dismiss" aria-label="Dismiss">×</button></div>
+    </main>
+  </div>
+  <dialog class="export-dialog" id="export-dialog" aria-labelledby="export-dialog-title">
+    <form id="export-form" method="dialog">
+      <span class="eyebrow">FINAL RENDER</span><h2 id="export-dialog-title">Export reviewed edit</h2>
+      <p>Render and validate a new video from the current saved cut points.</p>
+      <label class="export-name-label">Video filename<input id="export-filename" type="text" maxlength="160" required spellcheck="false"></label>
+      <label class="overwrite-option"><input id="export-overwrite" type="checkbox"><span>Replace an existing file with this name</span></label>
+      <div class="dialog-actions"><button class="button button-quiet" id="export-cancel" type="button">Cancel</button><button class="button button-primary" id="export-submit" type="submit">Start export <span>⇧</span></button></div>
+    </form>
+  </dialog>
+  <audio id="audio-master" preload="auto"></audio>
+</body>
+</html>

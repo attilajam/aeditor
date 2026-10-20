@@ -1,0 +1,111 @@
+{
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "total_frames": 625,
+    "duration": 20.833333333333332,
+    "fit": "contain"
+  },
+  "shots": 28,
+  "distinct_sources": 28,
+  "first_cut_frame": 233,
+  "first_cut_seconds": 7.766666666666667,
+  "beat_sensitivity": 2.0,
+  "beat_grid_unchanged": true,
+  "post_drop_cut_grid_unchanged": true,
+  "cut_activity": {
+    "enabled": true,
+    "method": "trailing RMS, foreground percentile, hysteresis and delayed release",
+    "reference_percentile": 80,
+    "reference_energy": 0.7116213999251554,
+    "rms_measurement": "centered 2048-sample RMS (approximately 93 ms), then trailing power smoothing",
+    "relative_threshold": 0.6,
+    "threshold": 0.4269728399550932,
+    "release_threshold": 0.32022962996631993,
+    "smoothing_seconds": 0.4,
+    "release_seconds": 0.3,
+    "active_intervals": [
+      [
+        7.748934240362812,
+        20.833333333333332
+      ]
+    ],
+    "quiet_intervals": [
+      [
+        0.0,
+        7.748934240362812
+      ]
+    ],
+    "suppressed_event_frames": [
+      30,
+      44,
+      59,
+      73,
+      88,
+      102,
+      117,
+      132,
+      146,
+      161,
+      175,
+      190,
+      204,
+      219
+    ],
+    "eligible_event_frames": [
+      233,
+      247,
+      262,
+      276,
+      291,
+      305,
+      320,
+      334,
+      349,
+      363,
+      378,
+      393,
+      407,
+      422,
+      436,
+      451,
+      465,
+      480,
+      494,
+      508,
+      523,
+      538,
+      552,
+      566,
+      581,
+      595,
+      610
+    ],
+    "forced_cut_frames": [],
+    "relaxed": false
+  },
+  "opening": {
+    "source": "/home/attila/Documents/edit/clips/light_yagami_scene_012.mp4",
+    "source_start": 1.1333333333333333,
+    "source_end": 8.9,
+    "speed": 1.0,
+    "detected_internal_cuts": [],
+    "max_adjacent_rgb_mae": 0.007166154682636261,
+    "max_change_frame": 151
+  },
+  "max_beat_error_seconds": 0.015918367346939633,
+  "audio_alignment": {
+    "valid": true,
+    "correlation": 0.9881698878031114,
+    "lag_seconds": 0.0,
+    "silence": false,
+    "comparison_seconds": 5.0
+  },
+  "max_boundary_pixel_mae": 0.002147444625998548,
+  "validation_valid": true,
+  "warnings": [
+    "The soundtrack ended between output frames; duration was floored to avoid extending beyond available music.",
+    "Shot-duration preferences relaxed to hold quiet sections without transitions; active-section cuts remain on the selected rhythm."
+  ]
+}

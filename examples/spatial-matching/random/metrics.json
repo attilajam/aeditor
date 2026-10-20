@@ -1,0 +1,90 @@
+{
+  "selection": [
+    {
+      "slot": 0,
+      "clip": 7,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 3
+    },
+    {
+      "slot": 1,
+      "clip": 0,
+      "kind": "target",
+      "source_kind_slot": 0,
+      "distractor_id": null
+    },
+    {
+      "slot": 2,
+      "clip": 2,
+      "kind": "target",
+      "source_kind_slot": 2,
+      "distractor_id": null
+    },
+    {
+      "slot": 3,
+      "clip": 6,
+      "kind": "distractor",
+      "source_kind_slot": null,
+      "distractor_id": 2
+    }
+  ],
+  "decoded_joint_transition_error": {
+    "description": "Mean per-landmark Euclidean displacement between the last decoded frame before each cut and the first decoded frame after it, normalized by frame diagonal; lower is more spatially consistent.",
+    "mean_diagonal_fraction": 0.20257095654972865,
+    "mean_pixels": 74.37416877230449,
+    "boundaries": [
+      {
+        "from_slot": 0,
+        "to_slot": 1,
+        "landmark_count": 13,
+        "rms_pixels": 109.59838278352922,
+        "rms_diagonal_fraction": 0.2985102166954263
+      },
+      {
+        "from_slot": 1,
+        "to_slot": 2,
+        "landmark_count": 13,
+        "rms_pixels": 15.322506122527077,
+        "rms_diagonal_fraction": 0.04173350469948666
+      },
+      {
+        "from_slot": 2,
+        "to_slot": 3,
+        "landmark_count": 13,
+        "rms_pixels": 98.20161741085718,
+        "rms_diagonal_fraction": 0.2674691482542729
+      }
+    ],
+    "boundary_frame_ground_truth_localization": [
+      {
+        "cut_frame": 36,
+        "localized_landmarks_per_side": 13,
+        "max_source_coordinate_error_pixels": 1.1018524671815864
+      },
+      {
+        "cut_frame": 72,
+        "localized_landmarks_per_side": 13,
+        "max_source_coordinate_error_pixels": 0.3396065550351199
+      },
+      {
+        "cut_frame": 108,
+        "localized_landmarks_per_side": 13,
+        "max_source_coordinate_error_pixels": 0.4832100672233921
+      }
+    ]
+  },
+  "decoded_marker_localization_failures": [],
+  "plan": "random/plan.json",
+  "video": "random/edit.mp4",
+  "contact_sheet": "random/contact-sheet.png",
+  "validation_valid": true,
+  "decoded_output_frames": 144,
+  "cut_frames": [
+    0,
+    36,
+    72,
+    108,
+    144
+  ]
+}

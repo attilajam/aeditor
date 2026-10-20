@@ -1,0 +1,51 @@
+# Audio interval and edit format.
+duration: null                 # Seconds; null analyzes up to 30 seconds (or a shorter file).
+audio_start: 0.0                # Start offset in the source soundtrack, in seconds.
+pacing: medium                  # slow (2–4 s), medium (1–2 s), or fast (0.5–1 s).
+beat_sensitivity: 1.0           # 0.5–3; raise to 2 for weaker onsets and more frequent beat cuts.
+quiet_threshold: 0.60           # Relative foreground RMS; hold quiet sections without cuts (0 disables).
+quiet_window: 0.40              # Seconds of trailing RMS smoothing; suppress isolated transients.
+quiet_release: 0.30             # Seconds below release level before a section becomes quiet.
+size: auto                      # Infer the dominant input display aspect and native resolution.
+fps: 30                         # Constant output frame rate, 1–120.
+fit: contain                    # contain, cover, or stretch; CLI --resolution always uses stretch.
+
+# Source selection.
+speed_min: 0.85                  # Source playback speed; >1 plays faster, <1 plays slower.
+speed_max: 1.15
+reuse: forbid                    # Each source clip appears at most once; allow is an explicit opt-in.
+seed: 0                          # Reproducible candidate ordering and bounded search.
+
+# Analysis and planning quality/speed controls.
+samples_per_second: 6.0          # Coarse source analysis sample rate, 0.5–60.
+analysis_long_side: 192          # Maximum long dimension for analysis frames, minimum 48.
+edge_center_bias: 0.65           # Broad subject emphasis, 0..1; 0 weights all screen positions equally.
+min_shot: null                   # Optional pacing override in seconds; null uses pacing defaults.
+max_shot: null                   # Optional pacing override in seconds; null uses pacing defaults.
+scene_threshold: 0.30            # Sampled visual-change threshold for estimated scene cuts, (0, 1].
+candidates_per_slot: 48          # Candidate source trims retained per output slot.
+beam_width: 24                   # Complete paths retained at each bounded search step.
+refine_top: 3                    # Coarse paths refined against native source frames.
+refine_steps: 3                  # Candidate trim offsets checked during native-frame refinement.
+cache_dir: .autoedit-cache       # Analysis cache, keyed by source content and settings.
+
+# FFmpeg encoding and resource use.
+crf: 19                          # H.264 quality value, 0–51; lower is higher quality/larger output.
+preset: veryfast                 # H.264 preset: ultrafast, superfast, veryfast, faster, fast, medium, slow.
+threads: 2                       # FFmpeg worker threads.
+
+# Nonnegative objective weights. Quality and continuity terms are accumulated
+# during candidate scoring and path transitions; repeat and overlap apply to
+# prior source use; speed and speed_change discourage abrupt speed choices;
+# duration guides cut selection toward preferred shot lengths.
+weights:
+  color: 0.03                     # Palette is a weak secondary cue.
+  structure: 0.07                 # Brightness/layout is secondary to contours.
+  edge: 0.75                      # Unsigned edge orientations at fixed 8x8 and 16x16 screen grids.
+  motion: 0.15
+  quality: 1.0
+  repeat: 0.30
+  overlap: 1.0
+  speed: 0.08
+  speed_change: 0.12
+  duration: 0.10

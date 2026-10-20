@@ -1,0 +1,35 @@
+usage: autoedit create [-h] --audio AUDIO --clips CLIPS --output OUTPUT
+                       [--config CONFIG] [--duration DURATION]
+                       [--audio-start AUDIO_START]
+                       [--pacing {slow,medium,fast}]
+                       [--beat-sensitivity BEAT_SENSITIVITY]
+                       [--resolution RESOLUTION | --size SIZE] [--fps FPS]
+                       [--fit {contain,cover,stretch}] [--speed-min SPEED_MIN]
+                       [--speed-max SPEED_MAX] [--reuse {allow,forbid}]
+                       [--seed SEED] [--cache-dir CACHE_DIR] [--overwrite]
+
+options:
+  -h, --help            show this help message and exit
+  --audio AUDIO
+  --clips CLIPS
+  --output OUTPUT
+  --config CONFIG
+  --duration DURATION
+  --audio-start AUDIO_START
+  --pacing {slow,medium,fast}
+  --beat-sensitivity BEAT_SENSITIVITY
+                        0.5..3.0; higher values detect weaker onsets and favor
+                        more frequent beat cuts (default: 1)
+  --resolution RESOLUTION
+                        WIDTHxHEIGHT; stretch each clip to exactly fill these
+                        output dimensions
+  --size SIZE           legacy canvas WIDTHxHEIGHT or auto, honoring --fit
+                        (default: auto from input clips)
+  --fps FPS
+  --fit {contain,cover,stretch}
+  --speed-min SPEED_MIN
+  --speed-max SPEED_MAX
+  --reuse {allow,forbid}
+  --seed SEED
+  --cache-dir CACHE_DIR
+  --overwrite

@@ -1,0 +1,156 @@
+{
+  "seed": 20261018,
+  "duration": 6.0,
+  "audio": {
+    "rhythmic": "examples/synthetic media/audio fixtures/rhythmic 120 bpm.wav",
+    "weak": "examples/synthetic media/audio fixtures/weak rhythm.wav",
+    "silence": "examples/synthetic media/audio fixtures/silence.wav",
+    "rhythmic_transient_times": [
+      0.25,
+      0.75,
+      1.25,
+      1.75,
+      2.25,
+      2.75,
+      3.25,
+      3.75,
+      4.25,
+      4.75,
+      5.25,
+      5.75
+    ],
+    "weak_transient_times": [
+      0.41,
+      1.0777419354838709,
+      1.6551612903225805,
+      2.4132258064516128,
+      2.9003225806451614,
+      3.7487096774193547,
+      4.145483870967742,
+      5.084193548387096,
+      5.390645161290323
+    ]
+  },
+  "videos": [
+    {
+      "path": "examples/synthetic media/video fixtures/similar scene A.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 24,
+      "has_audio": true,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 144,
+      "composition": "similar-a"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/similar scene B.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 30,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 180,
+      "composition": "similar-b"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/different composition.mp4",
+      "duration": 6.0,
+      "width": 160,
+      "height": 240,
+      "fps": 24,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 144,
+      "composition": "different"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/motion left.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 24,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 144,
+      "composition": "motion-left"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/motion right.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 30,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 180,
+      "composition": "motion"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/black video.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 24,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 144,
+      "composition": "black"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/rotated metadata.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 24,
+      "has_audio": false,
+      "rotation": 90,
+      "vfr": false,
+      "frames": 144,
+      "composition": "rotated"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/variable frame rate.mp4",
+      "duration": 6.0,
+      "width": 240,
+      "height": 160,
+      "fps": 24,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": true,
+      "frames": 144,
+      "composition": "vfr"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/very short clip.mp4",
+      "duration": 0.7,
+      "width": 240,
+      "height": 160,
+      "fps": 30,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 21,
+      "composition": "short"
+    },
+    {
+      "path": "examples/synthetic media/video fixtures/corrupt.mp4",
+      "duration": null,
+      "width": null,
+      "height": null,
+      "fps": null,
+      "has_audio": false,
+      "rotation": 0,
+      "vfr": false,
+      "frames": 0,
+      "composition": "corrupt"
+    }
+  ]
+}
