@@ -1,0 +1,57 @@
+# Rust build output
+/target/
+**/target/
+**/*.rs.bk
+
+# App caches (analysis, previews, draft slots)
+/.ae-cache/
+**/.ae-cache/
+
+# Clips / media inputs — never commit source footage
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.ts
+*.m2ts
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.aac
+*.m4a
+*.opus
+
+# Render / preview outputs
+/out/
+/renders/
+/exports/
+edited_*.mp4
+quick_preview.mp4
+concat_list.txt
+
+# Downloaded ML models (large binaries) — keep manifest only
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+
+# Secrets / local config
+.env
+.env.*
+*.pem
+*.key
+*secret*
+*token*
+secrets.toml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

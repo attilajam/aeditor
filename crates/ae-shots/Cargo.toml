@@ -1,0 +1,22 @@
+[package]
+name = "ae-shots"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ae-core.workspace = true
+ae-media.workspace = true
+palette.workspace = true
+image.workspace = true
+imageproc.workspace = true
+crossbeam-channel.workspace = true
+rayon.workspace = true
+ort.workspace = true
+ndarray.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

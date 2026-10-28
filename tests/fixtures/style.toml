@@ -1,0 +1,6 @@
+match_cut_threshold = 0.72
+strong_beat_threshold = 0.78
+default_duration_ms = 160
+default_easing = "cubic_in_out"
+strong_beat_transition = "zoom_punch"
+low_similarity_transition = "crossfade"

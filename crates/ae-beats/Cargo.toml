@@ -1,0 +1,23 @@
+[package]
+name = "ae-beats"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ae-core.workspace = true
+symphonia.workspace = true
+rubato.workspace = true
+realfft.workspace = true
+rustfft.workspace = true
+biquad.workspace = true
+hound.workspace = true
+image.workspace = true
+ort.workspace = true
+ndarray.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

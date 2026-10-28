@@ -1,0 +1,31 @@
+[models.transnetv2]
+name = "TransNetV2 Shot Boundary Detector"
+filename = "transnetv2.onnx"
+url = "https://huggingface.co/onnx-community/transnetv2/resolve/main/model.onnx"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+license = "MIT"
+description = "3D DDCNN shot boundary detection model (100-frame window, 50-frame stride, 48x27 RGB)"
+
+[models.htdemucs]
+name = "HTDemucs 4-Stem Audio Source Separator"
+filename = "htdemucs.onnx"
+url = "https://huggingface.co/onnx-community/htdemucs/resolve/main/model.onnx"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+license = "MIT"
+description = "Hybrid Transformer Demucs isolating bass, drums, other, and vocals stems"
+
+[models.dinov2_s14]
+name = "DINOv2 ViT-S/14 Visual Embedding Model"
+filename = "dinov2_vits14.onnx"
+url = "https://huggingface.co/onnx-community/dinov2-small/resolve/main/onnx/model.onnx"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+license = "Apache-2.0"
+description = "Self-supervised vision transformer for composition and structural visual similarity"
+
+[models.clip_vit_b32]
+name = "CLIP ViT-B/32 Vision Encoder"
+filename = "clip_vit_b32_vision.onnx"
+url = "https://huggingface.co/Qdrant/clip-ViT-B-32-vision/resolve/main/model.onnx"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+license = "MIT"
+description = "Semantic image embedding model"
