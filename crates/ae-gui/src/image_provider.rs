@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{OnceLock, RwLock};
 
-use ae_core::{Rational, RgbaFrame, Timeline};
+use ae_core::{Rational, RgbaFrame, Timeline, TimelineSlot};
 use ae_transitions::{TransitionCtx, build_transition};
 
 /// Thread-safe progress state polled by the Qt6 UI thread while background import/export tasks run.
@@ -32,11 +32,7 @@ pub fn get_gui_progress() -> (bool, u32, String) {
     let p = global_progress();
     let busy = p.busy.load(Ordering::SeqCst);
     let pct = p.percent.load(Ordering::SeqCst);
-    let msg = p
-        .message
-        .read()
-        .map(|g| g.clone())
-        .unwrap_or_default();
+    let msg = p.message.read().map(|g| g.clone()).unwrap_or_default();
     (busy, pct, msg)
 }
 
@@ -47,6 +43,8 @@ pub fn get_gui_progress() -> (bool, u32, String) {
 #[derive(Default)]
 pub struct GuiMediaCache {
     pub shot_thumbnails: HashMap<(usize, u8), RgbaFrame>,
+    pub character_portraits: HashMap<u64, RgbaFrame>,
+    pub character_revision: u64,
     pub spectrogram: Option<RgbaFrame>,
     pub spectrogram_revision: u64,
     pub proxy_reel: Vec<RgbaFrame>,
@@ -99,28 +97,61 @@ impl GuiMediaCache {
         self.preview_revision
     }
 
-    /// Resolve a source timestamp `src_pts` to the closest proxy frame in RAM (or shot thumbnail fallback).
-    fn sample_proxy_at(&self, shot_id: usize, src_pts: Rational) -> RgbaFrame {
-        if !self.proxy_reel.is_empty() {
-            // Binary search proxy_reel by pts
-            let idx = match self
-                .proxy_reel
-                .binary_search_by(|f| f.pts.cmp(&src_pts))
-            {
+    /// Resolve a source timestamp within the selected slot, or use its thumbnail fallback.
+    fn sample_proxy_at(&self, slot: &TimelineSlot, src_pts: Rational) -> RgbaFrame {
+        self.sample_source_range(slot.shot_id, slot.src_in, slot.src_out, src_pts)
+    }
+
+    pub fn source_preview_frame(
+        &self,
+        shot_id: usize,
+        start: Rational,
+        end: Rational,
+        position: f32,
+    ) -> RgbaFrame {
+        let time = start
+            + Rational::from_secs_f64(
+                (end - start).as_secs_f64() * position.clamp(0.0, 1.0) as f64,
+            );
+        self.sample_source_range(shot_id, start, end, time)
+    }
+
+    fn sample_source_range(
+        &self,
+        shot_id: usize,
+        start_time: Rational,
+        end_time: Rational,
+        src_pts: Rational,
+    ) -> RgbaFrame {
+        // Proxy PTS can precede the actual sampled source frame by half a sample interval.
+        let half_sample = self
+            .proxy_reel
+            .windows(2)
+            .next()
+            .map(|pair| (pair[1].pts - pair[0].pts) / 2)
+            .unwrap_or(Rational::ZERO);
+        let start = self
+            .proxy_reel
+            .partition_point(|frame| frame.pts < start_time);
+        let end = self
+            .proxy_reel
+            .partition_point(|frame| frame.pts < end_time - half_sample);
+        if let Some(frames) = self
+            .proxy_reel
+            .get(start..end)
+            .filter(|frames| !frames.is_empty())
+        {
+            let idx = match frames.binary_search_by(|f| f.pts.cmp(&src_pts)) {
                 Ok(i) => i,
+                Err(0) => 0,
+                Err(i) if i >= frames.len() => frames.len() - 1,
                 Err(i) => {
-                    if i == 0 {
-                        0
-                    } else if i >= self.proxy_reel.len() {
-                        self.proxy_reel.len() - 1
-                    } else {
-                        let d_prev = (src_pts - self.proxy_reel[i - 1].pts).abs();
-                        let d_curr = (self.proxy_reel[i].pts - src_pts).abs();
-                        if d_prev <= d_curr { i - 1 } else { i }
-                    }
+                    let d_prev = (src_pts - frames[i - 1].pts).abs();
+                    let d_curr = (frames[i].pts - src_pts).abs();
+                    if d_prev <= d_curr { i - 1 } else { i }
                 }
             };
-            return self.proxy_reel[idx].clone();
+            return frames[idx].clone();
         }
         self.get_shot_thumbnail(shot_id, 1)
     }
@@ -130,11 +161,7 @@ impl GuiMediaCache {
     /// -> proxy frame in RAM, applying real-time CPU transitions if inside a transition window.
     pub fn resolve_timeline_preview_frame(&self, playhead_ms: u64) -> (RgbaFrame, i32, i32) {
         let Some(ref tl) = self.active_timeline else {
-            return (
-                self.get_shot_thumbnail(0, 1),
-                -1,
-                0,
-            );
+            return (self.get_shot_thumbnail(0, 1), -1, 0);
         };
         if tl.slots.is_empty() {
             return (self.get_shot_thumbnail(0, 1), -1, 0);
@@ -153,7 +180,7 @@ impl GuiMediaCache {
             Rational::from_secs_f64(elapsed_dst.as_secs_f64() * slot.speed.max(0.1));
         let src_pts = (slot.src_in + scaled_elapsed).min(slot.src_out);
 
-        let to_frame = self.sample_proxy_at(slot.shot_id, src_pts);
+        let to_frame = self.sample_proxy_at(slot, src_pts);
 
         // If inside a non-cut transition window at the beginning of this slot, composite live!
         if slot_idx > 0
@@ -163,8 +190,7 @@ impl GuiMediaCache {
             && let Ok(tr) = build_transition(&slot.transition_in.id, &slot.transition_in.params)
         {
             let prev_slot = &tl.slots[slot_idx - 1];
-            let prev_pts = prev_slot.src_out + elapsed_dst;
-            let from_frame = self.sample_proxy_at(prev_slot.shot_id, prev_pts);
+            let from_frame = self.sample_proxy_at(prev_slot, prev_slot.src_out);
             if from_frame.width == to_frame.width && from_frame.height == to_frame.height {
                 let progress = (elapsed_dst.as_secs_f32()
                     / slot.transition_in.duration.as_secs_f32().max(1e-4))
@@ -190,5 +216,126 @@ impl GuiMediaCache {
         }
 
         (to_frame, slot_idx as i32, slot.shot_id as i32)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ae_core::{Resolution, TimelineSlot, TransitionSpec};
+
+    #[test]
+    fn source_scrubbing_covers_the_shot_without_crossing_its_boundaries() {
+        let mut cache = GuiMediaCache::default();
+        cache.proxy_reel = (0..30)
+            .map(|i| RgbaFrame::solid(2, 2, [i as u8, 0, 0, 255], Rational::new(i, 10)))
+            .collect();
+        let start = Rational::ONE;
+        let end = Rational::from_secs(2);
+        for (position, expected) in [(0.0, 10), (0.5, 15), (1.0, 19), (-1.0, 10), (2.0, 19)] {
+            assert_eq!(
+                cache
+                    .source_preview_frame(0, start, end, position)
+                    .pixel(0, 0)[0],
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_preview_stays_in_the_selected_source_range_until_transition() {
+        let fps = Rational::from_secs(30);
+        let mut cache = GuiMediaCache::default();
+        cache.proxy_reel = (0..90)
+            .map(|i| {
+                let color = if i < 12 {
+                    [220, 10, 10, 255]
+                } else if i < 42 {
+                    [10, 220, 10, 255]
+                } else {
+                    [10, 10, 220, 255]
+                };
+                RgbaFrame::solid(2, 2, color, Rational::from_frame_index(i, fps))
+            })
+            .collect();
+        cache.active_timeline = Some(Timeline {
+            version: 1,
+            source_video: String::new(),
+            source_audio: String::new(),
+            resolution: Resolution::new(2, 2),
+            fps,
+            total_duration: Rational::from_secs(2),
+            mean_boundary_similarity: 1.0,
+            slots: vec![
+                TimelineSlot {
+                    slot_index: 0,
+                    dst_start: Rational::ZERO,
+                    dst_end: Rational::ONE,
+                    shot_id: 0,
+                    src_in: Rational::ZERO,
+                    src_out: Rational::from_millis(400),
+                    speed: 1.0,
+                    transition_in: TransitionSpec::default(),
+                    boundary_similarity: 1.0,
+                    beat_strength: 1.0,
+                    locked: false,
+                },
+                TimelineSlot {
+                    slot_index: 1,
+                    dst_start: Rational::ONE,
+                    dst_end: Rational::from_secs(2),
+                    shot_id: 2,
+                    src_in: Rational::from_millis(1400),
+                    src_out: Rational::from_millis(2400),
+                    speed: 1.0,
+                    transition_in: TransitionSpec {
+                        id: "crossfade".into(),
+                        duration: Rational::from_millis(200),
+                        easing: "linear".into(),
+                        params: toml::Value::Table(toml::map::Map::new()),
+                    },
+                    boundary_similarity: 1.0,
+                    beat_strength: 1.0,
+                    locked: false,
+                },
+            ],
+        });
+        for ms in [0, 400, 800, 999, 1000, 1100, 1199, 1500] {
+            let (frame, _, _) = cache.resolve_timeline_preview_frame(ms);
+            let pixel = frame.pixel(0, 0);
+            assert!(
+                pixel[1] < 70,
+                "unselected green scene leaked at {ms}ms: {pixel:?}"
+            );
+            if ms < 1000 {
+                assert!(pixel[0] > 150);
+            }
+            if ms >= 1200 {
+                assert!(pixel[2] > 150);
+            }
+        }
+
+        // The fps filter may label a frame just before the source cut with the preceding sample PTS.
+        cache.proxy_reel = (0..30)
+            .map(|i| {
+                let color = if i < 23 {
+                    [220, 10, 10, 255]
+                } else {
+                    [10, 220, 10, 255]
+                };
+                RgbaFrame::solid(2, 2, color, Rational::new(i, 10))
+            })
+            .collect();
+        let timeline = cache.active_timeline.as_mut().unwrap();
+        timeline.slots.truncate(1);
+        timeline.slots[0].src_out = Rational::new(70, 30);
+        timeline.slots[0].dst_end = Rational::from_secs(3);
+        for ms in [2200, 2300, 2500, 2999] {
+            let frame = cache.resolve_timeline_preview_frame(ms).0;
+            assert!(
+                frame.pixel(0, 0)[0] > 150,
+                "sampled proxy crossed the source end at {ms}ms"
+            );
+        }
     }
 }

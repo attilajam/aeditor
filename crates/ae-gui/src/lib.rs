@@ -1,5 +1,8 @@
 pub mod app;
 pub mod beat_editor_model;
+pub mod character_analysis;
+pub mod character_edits;
+pub mod character_model;
 pub mod image_provider;
 pub mod project_controller;
 pub mod shot_pool_model;
@@ -7,10 +10,12 @@ pub mod timeline_model;
 
 pub use app::AutoEditorEguiApp;
 pub use beat_editor_model::{BeatEditorModel, BeatViewItem};
-pub use image_provider::{
-    GuiMediaCache, get_gui_progress, global_media_cache, set_gui_progress,
+pub use character_model::{
+    CharacterAnalysis, CharacterFilter, CharacterFilterMode, CharacterId, CharacterObservation,
+    CharacterRecord, SceneCharacterTags, character_matches,
 };
-pub use project_controller::{GuiStateSnapshot, ProjectController};
+pub use image_provider::{GuiMediaCache, get_gui_progress, global_media_cache, set_gui_progress};
+pub use project_controller::{CharacterViewItem, GuiStateSnapshot, ProjectController};
 pub use shot_pool_model::{ShotPoolModel, ShotViewItem};
 pub use timeline_model::{AlternativeShotItem, TimelineModel, TimelineSlotViewItem};
 
@@ -21,8 +26,104 @@ mod tests {
     use ae_core::{Rational, Resolution};
     use ae_media::generate_synthetic_multi_shot_video;
 
+    pub(super) static GUI_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn transition_style_import_validates_before_replacing_policy() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("style.toml");
+        let mut controller = ProjectController::new();
+        for content in [
+            "strong_beat_transition = 'unknown'",
+            "default_duration_ms = -1",
+            "strong_beat_threshold = nan",
+            "[invalid",
+        ] {
+            std::fs::write(&path, content).unwrap();
+            assert!(controller.import_transition_style(&path).is_err());
+            assert_eq!(
+                controller.timeline_model.policy.strong_beat_transition,
+                "cut"
+            );
+        }
+        std::fs::write(
+            &path,
+            "strong_beat_transition = 'flash'\ndefault_duration_ms = 120",
+        )
+        .unwrap();
+        controller.import_transition_style(&path).unwrap();
+        assert_eq!(
+            controller.timeline_model.policy.strong_beat_transition,
+            "flash"
+        );
+        assert_eq!(controller.timeline_model.policy.default_duration_ms, 120);
+    }
+
+    #[test]
+    fn test_sampled_import_refines_scene_edges_to_source_frames() {
+        use ae_media::MediaBackend;
+
+        let _guard = GUI_TEST_LOCK.lock().unwrap();
+        for fps in [Rational::from_secs(30), Rational::new(30_000, 1_001)] {
+            let tmp = tempfile::tempdir().unwrap();
+            let path = tmp.path().join("sampled_cuts.mp4");
+            let cuts = generate_synthetic_multi_shot_video(
+                &path,
+                Resolution::new(64, 36),
+                fps,
+                &[
+                    ([230, 30, 30], [230, 30, 30], 70),
+                    ([30, 220, 40], [30, 220, 40], 82),
+                    ([40, 60, 240], [40, 60, 240], 1700),
+                ],
+            )
+            .unwrap();
+
+            // Over 60 seconds selects 10 fps analysis; both cuts fall between sampled frames.
+            let mut ctrl = ProjectController::new();
+            ctrl.import_video(&path).unwrap();
+            let shots = &ctrl.shot_pool.shots;
+            assert_eq!(shots.len(), 3);
+            for (i, cut) in cuts.iter().enumerate() {
+                assert_eq!(shots[i].end, *cut);
+                assert_eq!(shots[i].usable_end, *cut);
+                assert_eq!(shots[i + 1].start, *cut);
+                assert_eq!(shots[i + 1].usable_start, *cut);
+            }
+
+            let middle = &shots[1];
+            let frames = ctrl
+                .backend
+                .decode_segment(
+                    &path,
+                    middle.usable_start,
+                    middle.usable_duration(),
+                    Resolution::new(64, 36),
+                    fps,
+                    1.0,
+                    None,
+                )
+                .unwrap();
+            assert_eq!(frames.len(), 82);
+            for frame in &frames {
+                let pixel = frame.pixel(32, 18);
+                assert!(
+                    pixel[1] > 180 && pixel[0] < 70 && pixel[2] < 80,
+                    "neighboring shot leaked into frame at {}",
+                    frame.pts
+                );
+            }
+            let cache = global_media_cache().read().unwrap();
+            for position in [0, 1, 2] {
+                let thumbnail = cache.get_shot_thumbnail(1, position);
+                assert!(thumbnail.pixel(thumbnail.width / 2, thumbnail.height / 2)[1] > 180);
+            }
+        }
+    }
+
     #[test]
     fn test_egui_controller_shot_selection_beat_dragging_and_export() {
+        let _guard = GUI_TEST_LOCK.lock().unwrap();
         let tmp = tempfile::tempdir().unwrap();
         let vid_path = tmp.path().join("gui_clip.mp4");
         let aud_path = tmp.path().join("gui_song.wav");
@@ -54,6 +155,7 @@ mod tests {
         let mut ctrl = ProjectController::new();
         ctrl.set_resolution_str("240x400").unwrap();
         ctrl.import_video(&vid_path).unwrap();
+        ctrl.seed_character_detections_for_test();
         ctrl.import_audio(&aud_path).unwrap();
 
         let snap0 = ctrl.snapshot();
@@ -121,8 +223,75 @@ mod tests {
             "only modified slot 2 should be re-encoded"
         );
 
+        // Each draft size must produce an actual file at the selected dimensions.
+        for divisor in [1, 2, 3, 4] {
+            use ae_media::MediaBackend;
+            let draft = ctrl.quick_render_draft(divisor).unwrap();
+            let expected = Resolution::new((240 / divisor).max(64), (400 / divisor).max(64));
+            assert_eq!(draft.resolution, expected);
+            let probe = ctrl.backend.probe_video(&draft.output_path).unwrap();
+            assert_eq!(
+                probe.oriented_dimensions(),
+                (expected.width, expected.height)
+            );
+            let frame = crate::app::decode_draft_frame(
+                &draft.output_path,
+                300,
+                ctrl.snapshot().timeline_duration_sec,
+            )
+            .unwrap();
+            assert_eq!(
+                (frame.width, frame.height),
+                (expected.width, expected.height)
+            );
+        }
+
         // 6. Export final video from the GUI controller
-        ctrl.export_video(&out_path, false).unwrap();
-        assert!(out_path.exists());
+        assert!(
+            ctrl.export_video_with_quality(&out_path, false, 52, "fast")
+                .is_err()
+        );
+        assert!(
+            ctrl.export_video_with_quality(&out_path, false, 18, "invalid")
+                .is_err()
+        );
+        ctrl.export_video_with_quality(&out_path, false, 35, "veryslow")
+            .unwrap();
+        let encoded = std::fs::read(&out_path).unwrap();
+        let metadata = String::from_utf8_lossy(&encoded);
+        assert!(
+            metadata.contains("crf=35.0"),
+            "selected compression did not reach x264"
+        );
+        assert!(
+            metadata.contains("subme=10"),
+            "selected veryslow preset did not reach x264"
+        );
+
+        // Resequencing a locked clip near its shot's end must not extend into the next scene.
+        let shot_end = ctrl.shot_pool.shots[chosen_alt].usable_end;
+        let slot = &mut ctrl.timeline_model.timeline.as_mut().unwrap().slots[1];
+        slot.src_in = shot_end - Rational::from_millis(100);
+        slot.src_out = shot_end;
+        ctrl.resequence().unwrap();
+        let restored = &ctrl.timeline_model.timeline.as_ref().unwrap().slots[1];
+        assert_eq!(restored.shot_id, chosen_alt);
+        assert!(
+            restored.src_out <= shot_end,
+            "locked clip crossed its scene boundary"
+        );
+
+        // 7. Round-robin reuse toggle round-trips through the controller snapshot and
+        // never places the same clip in neighbouring slots.
+        ctrl.set_allow_reuse(true).unwrap();
+        assert!(ctrl.snapshot().allow_reuse);
+        for w in ctrl.snapshot().slots.windows(2) {
+            assert_ne!(
+                w[0].shot_id, w[1].shot_id,
+                "neighbouring slots must never share a clip"
+            );
+        }
+        ctrl.set_allow_reuse(false).unwrap();
+        assert!(!ctrl.snapshot().allow_reuse);
     }
 }

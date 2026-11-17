@@ -23,6 +23,10 @@ pub struct ShotViewItem {
     pub thumb_start_url: String,
     pub thumb_mid_url: String,
     pub thumb_end_url: String,
+    #[serde(default)]
+    pub character_ids: Vec<u64>,
+    #[serde(default)]
+    pub characters_unresolved: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -53,11 +57,7 @@ impl ShotPoolModel {
         Ok(())
     }
 
-    pub fn populate_thumbnails(
-        &self,
-        backend: &dyn MediaBackend,
-        video_path: &Path,
-    ) -> Result<()> {
+    pub fn populate_thumbnails(&self, backend: &dyn MediaBackend, video_path: &Path) -> Result<()> {
         let fps = Rational::from_secs(10);
         let one_frame_dur = Rational::new(1, 10);
 
@@ -82,6 +82,7 @@ impl ShotPoolModel {
                     self.thumb_res,
                     fps,
                     1.0,
+                    None,
                 )
                 .ok()
                 .and_then(|mut v| v.pop())
@@ -95,7 +96,15 @@ impl ShotPoolModel {
                 });
 
             let t1 = backend
-                .decode_segment(video_path, mid, one_frame_dur, self.thumb_res, fps, 1.0)
+                .decode_segment(
+                    video_path,
+                    mid,
+                    one_frame_dur,
+                    self.thumb_res,
+                    fps,
+                    1.0,
+                    None,
+                )
                 .ok()
                 .and_then(|mut v| v.pop())
                 .unwrap_or_else(|| t0.clone());
@@ -108,6 +117,7 @@ impl ShotPoolModel {
                     self.thumb_res,
                     fps,
                     1.0,
+                    None,
                 )
                 .ok()
                 .and_then(|mut v| v.pop())
@@ -271,6 +281,8 @@ impl ShotPoolModel {
                     thumb_start_url: format!("image://shots/{}/0", s.id),
                     thumb_mid_url: format!("image://shots/{}/1", s.id),
                     thumb_end_url: format!("image://shots/{}/2", s.id),
+                    character_ids: Vec::new(),
+                    characters_unresolved: false,
                 }
             })
             .collect()

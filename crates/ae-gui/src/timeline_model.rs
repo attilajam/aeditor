@@ -43,7 +43,8 @@ impl TimelineModel {
     }
 
     /// Re-run the match-cut beam search sequencer over enabled shots and enabled beats,
-    /// preserving any user-locked (`locked == true`) slots and strictly avoiding clip reuse.
+    /// preserving any user-locked (`locked == true`) slots. Clip reuse follows
+    /// `config.allow_reuse` (off by default).
     pub fn resequence(&mut self, shots: &[Shot], beats: &[Beat]) -> Result<&Timeline> {
         let locked_slots: Vec<_> = self
             .timeline
@@ -62,14 +63,24 @@ impl TimelineModel {
         // Restore locked slots if their shot is still enabled and unused in other slots
         for locked in locked_slots {
             if locked.slot_index < new_tl.slots.len()
-                && shots.get(locked.shot_id).is_some_and(|s| s.enabled)
+                && shots.get(locked.shot_id).is_some_and(|shot| {
+                    shot.enabled
+                        && locked.src_in >= shot.usable_start
+                        && locked.src_out <= shot.usable_end
+                })
             {
-                let conflict_idx = new_tl
-                    .slots
-                    .iter()
-                    .enumerate()
-                    .find(|&(i, other)| i != locked.slot_index && other.shot_id == locked.shot_id)
-                    .map(|(i, _)| i);
+                let conflict_idx = if self.config.allow_reuse {
+                    None
+                } else {
+                    new_tl
+                        .slots
+                        .iter()
+                        .enumerate()
+                        .find(|&(i, other)| {
+                            i != locked.slot_index && other.shot_id == locked.shot_id
+                        })
+                        .map(|(i, _)| i)
+                };
 
                 let prev_shot_id = new_tl.slots[locked.slot_index].shot_id;
                 let dst_dur = new_tl.slots[locked.slot_index].dst_duration();
@@ -77,7 +88,7 @@ impl TimelineModel {
                     let slot = &mut new_tl.slots[locked.slot_index];
                     slot.shot_id = locked.shot_id;
                     slot.src_in = locked.src_in;
-                    slot.src_out = locked.src_in + dst_dur;
+                    slot.src_out = (locked.src_in + dst_dur).min(shots[locked.shot_id].usable_end);
                     slot.transition_in = locked.transition_in;
                     slot.locked = true;
                 }
@@ -112,7 +123,8 @@ impl TimelineModel {
         Ok(slot.locked)
     }
 
-    /// Return top-`k` unused enabled alternative shots ranked by visual match similarity for `slot_index`.
+    /// Return top-`k` enabled alternative shots ranked by visual match similarity for `slot_index`.
+    /// With `allow_reuse`, previously used shots stay eligible but immediate neighbours are excluded.
     pub fn rank_alternatives(
         &self,
         shots: &[Shot],
@@ -122,14 +134,21 @@ impl TimelineModel {
         let Some(ref tl) = self.timeline else {
             return Vec::new();
         };
-        rank_alternative_shots_for_slot(shots, &self.bank, tl, slot_index, top_k)
-            .into_iter()
-            .map(|(shot_id, similarity)| AlternativeShotItem {
-                shot_id,
-                similarity,
-                thumb_url: format!("image://shots/{shot_id}/0"),
-            })
-            .collect()
+        rank_alternative_shots_for_slot(
+            shots,
+            &self.bank,
+            tl,
+            slot_index,
+            top_k,
+            self.config.allow_reuse,
+        )
+        .into_iter()
+        .map(|(shot_id, similarity)| AlternativeShotItem {
+            shot_id,
+            similarity,
+            thumb_url: format!("image://shots/{shot_id}/0"),
+        })
+        .collect()
     }
 
     /// Swap `slot_index` to use `new_shot_id`. If `new_shot_id` was already used in another slot
@@ -270,12 +289,7 @@ impl TimelineModel {
     pub fn slot_assignments(&self) -> Vec<(usize, usize)> {
         self.timeline
             .as_ref()
-            .map(|tl| {
-                tl.slots
-                    .iter()
-                    .map(|s| (s.shot_id, s.slot_index))
-                    .collect()
-            })
+            .map(|tl| tl.slots.iter().map(|s| (s.shot_id, s.slot_index)).collect())
             .unwrap_or_default()
     }
 
@@ -303,5 +317,55 @@ impl TimelineModel {
                 thumb_url: format!("image://shots/{}/1", s.shot_id),
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ae_core::{RgbaFrame, ShotBoundaryKind};
+
+    #[test]
+    fn character_scene_trim_does_not_restore_excluded_locked_source() {
+        let mut shot = Shot {
+            id: 0,
+            start: Rational::ZERO,
+            end: Rational::from_secs(2),
+            usable_start: Rational::ZERO,
+            usable_end: Rational::from_secs(2),
+            cut_confidence: 1.0,
+            boundary_kind: ShotBoundaryKind::HardCut,
+            mean_luma: 0.5,
+            enabled: true,
+            locked: false,
+        };
+        let frames = (0..4)
+            .map(|index| RgbaFrame::solid(32, 18, [120, 80, 40, 255], Rational::new(index, 2)))
+            .collect::<Vec<_>>();
+        let mut model = TimelineModel::new();
+        model.bank = ae_similarity::build_descriptor_bank_from_frames(
+            &frames,
+            &[shot.clone()],
+            &ae_similarity::SimilarityConfig::default(),
+        )
+        .unwrap();
+        let beat = Beat {
+            index: 0,
+            time: Rational::new(1, 2),
+            strength: 1.0,
+            bass_freq_hz: 65.0,
+            is_downbeat: true,
+            enabled: true,
+            is_manual: false,
+        };
+        model.resequence(&[shot.clone()], &[beat.clone()]).unwrap();
+        let locked = &mut model.timeline.as_mut().unwrap().slots[0];
+        locked.src_in = Rational::ZERO;
+        locked.src_out = Rational::new(1, 2);
+        locked.locked = true;
+        shot.usable_start = Rational::new(1, 2);
+        let timeline = model.resequence(&[shot], &[beat]).unwrap();
+        assert!(timeline.slots[0].src_in >= Rational::new(1, 2));
+        assert!(!timeline.slots[0].locked);
     }
 }
