@@ -29,13 +29,12 @@ pub struct GpuTransitionEngine {
 impl GpuTransitionEngine {
     pub fn new(shaders_dir: Option<&Path>) -> Self {
         let instance = wgpu::Instance::default();
-        let adapter_opt = pollster::block_on(
-            instance.request_adapter(&wgpu::RequestAdapterOptions {
+        let adapter_opt =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 ..Default::default()
-            }),
-        )
-        .ok();
+            }))
+            .ok();
 
         let (device, queue) = if let Some(adapter) = adapter_opt {
             match pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())) {
@@ -54,6 +53,10 @@ impl GpuTransitionEngine {
         shaders.insert(
             "dreamy_wave".to_string(),
             include_str!("../../../transitions/dreamy_wave.wgsl").to_string(),
+        );
+        shaders.insert(
+            "morph".to_string(),
+            include_str!("../../../transitions/morph.wgsl").to_string(),
         );
 
         if let Some(dir) = shaders_dir
@@ -90,8 +93,8 @@ impl GpuTransitionEngine {
     /// or fall back to the CPU transition registry.
     pub fn resolve(&self, id: &str, params: &toml::Value) -> Result<Box<dyn Transition>> {
         if let Some(wgsl) = self.shaders.get(id) {
-            let cpu_fallback = build_transition(id, params)
-                .or_else(|_| build_transition("crossfade", params))?;
+            let cpu_fallback =
+                build_transition(id, params).or_else(|_| build_transition("crossfade", params))?;
             return Ok(Box::new(WgslTransition {
                 id_leaked: Box::leak(id.to_string().into_boxed_str()),
                 wgsl_source: wgsl.clone(),

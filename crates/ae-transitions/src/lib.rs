@@ -1,8 +1,6 @@
 use std::path::Path;
 
-use ae_core::{
-    AeError, FrameMut, FrameRef, LinearRgbaFrame, Rational, Result, TransitionSpec,
-};
+use ae_core::{AeError, FrameMut, FrameRef, LinearRgbaFrame, Rational, Result, TransitionSpec};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use wide::f32x4;
@@ -222,6 +220,77 @@ inventory::submit! {
         description: "Linear-light BT.709 premultiplied RGBA crossfade",
         build: Crossfade::from_params,
     }
+}
+
+pub struct Morph;
+
+impl Morph {
+    pub fn from_params(_: &toml::Value) -> Result<Box<dyn Transition>> {
+        Ok(Box::new(Self))
+    }
+}
+
+impl Transition for Morph {
+    fn id(&self) -> &'static str {
+        "morph"
+    }
+
+    fn render(
+        &self,
+        ctx: &TransitionCtx,
+        from: FrameRef<'_>,
+        to: FrameRef<'_>,
+        progress: f32,
+        mut out: FrameMut<'_>,
+    ) {
+        if progress <= 0.0 {
+            out.copy_from_ref(from);
+            return;
+        }
+        if progress >= 1.0 {
+            out.copy_from_ref(to);
+            return;
+        }
+        let t = apply_easing(&ctx.easing, progress);
+        let scale = 0.1 * from.width.min(from.height) as f32;
+        let sample = |frame: FrameRef<'_>, x: i32, y: i32| {
+            let x = x.clamp(0, frame.width as i32 - 1) as u32;
+            let y = y.clamp(0, frame.height as i32 - 1) as u32;
+            let i = ((y * frame.width + x) * 4) as usize;
+            [
+                frame.data[i] as f32 / 255.0,
+                frame.data[i + 1] as f32 / 255.0,
+                frame.data[i + 2] as f32 / 255.0,
+                frame.data[i + 3] as f32 / 255.0,
+            ]
+        };
+        for y in 0..from.height {
+            for x in 0..from.width {
+                let i = ((y * from.width + x) * 4) as usize;
+                let a = sample(from, x as i32, y as i32);
+                let b = sample(to, x as i32, y as i32);
+                let ox = ((a[0] + a[2] - 1.0 + b[0] + b[2] - 1.0) * 0.25) * scale;
+                let oy = ((a[1] + a[2] - 1.0 + b[1] + b[2] - 1.0) * 0.25) * scale;
+                let aa = sample(
+                    from,
+                    x as i32 + (ox * t).round() as i32,
+                    y as i32 + (oy * t).round() as i32,
+                );
+                let bb = sample(
+                    to,
+                    x as i32 - (ox * (1.0 - t)).round() as i32,
+                    y as i32 - (oy * (1.0 - t)).round() as i32,
+                );
+                for c in 0..4 {
+                    out.data[i + c] = ((aa[c] * (1.0 - t) + bb[c] * t) * 255.0).round() as u8;
+                }
+            }
+        }
+    }
+}
+
+inventory::submit! {
+    TransitionFactory { id: "morph", description: "Color-displaced morph crossfade", build: Morph::from_params }
 }
 
 // ============================================================================
@@ -560,8 +629,7 @@ impl Transition for WhipPan {
                     let u = (x as f32) / ((w.max(2) - 1) as f32);
                     let mut acc = [0.0f32; 4];
                     for s in 0..taps {
-                        let offset =
-                            (((s as f32) / ((taps - 1) as f32)) - 0.5) * blur_radius;
+                        let offset = (((s as f32) / ((taps - 1) as f32)) - 0.5) * blur_radius;
                         let su = (u + t + offset).rem_euclid(2.0);
                         let sample = if su < 1.0 {
                             lin_from.sample_bilinear(su, v)
