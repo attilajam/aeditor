@@ -1,13 +1,19 @@
 use std::path::{Path, PathBuf};
 use std::thread;
 
-use ae_core::{
-    AeError, Rational, Result, RgbaFrame, Shot, ShotBoundaryKind, ShotDetectorMode,
-};
+use ae_core::{AeError, Rational, Result, RgbaFrame, Shot, ShotBoundaryKind, ShotDetectorMode};
 use ae_media::MediaBackend;
 use crossbeam_channel::bounded;
 use ndarray::Array5;
 use rayon::prelude::*;
+
+mod incremental;
+mod refine;
+pub use incremental::ClassicShotDetector;
+pub use refine::{
+    refine_shot_boundaries, refine_shot_boundaries_from_frame_file,
+    refine_shot_boundaries_with_progress,
+};
 
 #[derive(Clone, Debug)]
 pub struct ShotDetectorConfig {
@@ -196,7 +202,8 @@ pub fn detect_shots(
 
     // Stream frames via the backend
     let decode_res = thread::scope(|s| -> Result<Vec<RgbaFrame>> {
-        let handle = s.spawn(move || backend.decode_scaled_stream(&path_owned, thumb_w, thumb_h, None, tx));
+        let handle =
+            s.spawn(move || backend.decode_scaled_stream(&path_owned, thumb_w, thumb_h, None, tx));
         let mut frames = Vec::new();
         while let Ok(frame) = rx.recv() {
             frames.push(frame);
@@ -216,8 +223,12 @@ pub fn detect_shots(
     }
 
     match config.mode {
-        ShotDetectorMode::Classic => detect_shots_classic(&decode_res, probe.duration, probe.fps, config),
-        ShotDetectorMode::Neural => detect_shots_neural(&decode_res, probe.duration, probe.fps, config),
+        ShotDetectorMode::Classic => {
+            detect_shots_classic(&decode_res, probe.duration, probe.fps, config)
+        }
+        ShotDetectorMode::Neural => {
+            detect_shots_neural(&decode_res, probe.duration, probe.fps, config)
+        }
     }
 }
 
@@ -232,101 +243,19 @@ pub fn detect_shots_classic(
     fps: Rational,
     config: &ShotDetectorConfig,
 ) -> Result<Vec<Shot>> {
-    // Parallelize per-frame feature extraction across all CPU cores via rayon
     let metrics: Vec<FrameMetrics> = frames.par_iter().map(FrameMetrics::from_frame).collect();
-    let n = metrics.len();
-    if n <= 1 {
-        return Ok(vec![Shot {
-            id: 0,
-            start: Rational::ZERO,
-            end: total_duration.max(Rational::from_secs(1)),
-            usable_start: Rational::ZERO,
-            usable_end: total_duration.max(Rational::from_secs(1)),
-            cut_confidence: 1.0,
-            boundary_kind: ShotBoundaryKind::Initial,
-            mean_luma: metrics.first().map(|m| m.mean_luma).unwrap_or(0.5),
-            enabled: true,
-            locked: false,
-        }]);
+    let mut detector = ClassicShotDetector::new(config.clone());
+    detector.diffs = vec![0.0; metrics.len()];
+    if let Some(diffs) = detector.diffs.get_mut(1..) {
+        diffs.par_iter_mut().enumerate().for_each(|(idx, out)| {
+            *out = metrics[idx].distance(&metrics[idx + 1]);
+        });
     }
-
-    // Parallel frame-to-frame distances d[i] = dist(frame[i-1], frame[i])
-    let mut diffs = vec![0.0f32; n];
-    diffs[1..].par_iter_mut().enumerate().for_each(|(idx, out)| {
-        let i = idx + 1;
-        *out = metrics[i - 1].distance(&metrics[i]);
-    });
-
-    // Rolling median + MAD adaptive thresholds + flash suppression + twin comparison
-    let half_w = config.adaptive_window / 2;
-    let mut boundaries: Vec<(usize, usize, f32, ShotBoundaryKind)> = Vec::new(); // (cut_end_of_prev, cut_start_of_next, conf, kind)
-
-    let mut gradual_start: Option<usize> = None;
-    let mut gradual_accum = 0.0f32;
-
-    for i in 1..n {
-        let w_start = i.saturating_sub(half_w).max(1);
-        let w_end = (i + half_w + 1).min(n);
-        let mut local: Vec<f32> = diffs[w_start..w_end].to_vec();
-        local.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        let median = local[local.len() / 2];
-
-        let mut abs_devs: Vec<f32> = local.iter().map(|v| (v - median).abs()).collect();
-        abs_devs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        let mad = abs_devs[abs_devs.len() / 2].max(0.008);
-
-        let t_high = (median + config.mad_k_high * mad).max(config.min_hard_cut_score);
-        let t_low = (median + config.mad_k_low * mad).max(config.min_hard_cut_score * 0.45);
-
-        let d = diffs[i];
-
-        // Flash/strobe suppression: if frame i spikes high, check if frame i+1 or i+2 returns
-        // closely to frame i-1's appearance!
-        if d >= t_high {
-            let is_flash = if i + 1 < n {
-                let revert_1 = metrics[i - 1].distance(&metrics[i + 1]);
-                let revert_2 = if i + 2 < n {
-                    metrics[i - 1].distance(&metrics[i + 2])
-                } else {
-                    1.0
-                };
-                revert_1 < t_low * 0.85 || revert_2 < t_low * 0.85
-            } else {
-                false
-            };
-
-            if !is_flash {
-                gradual_start = None;
-                gradual_accum = 0.0;
-                let conf = ((d - t_high) / t_high.max(0.1) + 0.65).clamp(0.5, 1.0);
-                boundaries.push((i, i, conf, ShotBoundaryKind::HardCut));
-                continue;
-            }
-        }
-
-        // Twin-comparison for gradual transitions (dissolves / fades)
-        if d >= t_low {
-            let start_idx = *gradual_start.get_or_insert(i.saturating_sub(1));
-            gradual_accum += d - median;
-            let anchor_dist = metrics[start_idx].distance(&metrics[i]);
-            if gradual_accum >= t_high * 1.4 && anchor_dist >= t_high * 0.9 {
-                let kind = if metrics[i].mean_luma < 0.05 || metrics[start_idx].mean_luma < 0.05 {
-                    ShotBoundaryKind::Fade
-                } else {
-                    ShotBoundaryKind::Dissolve
-                };
-                let conf = (anchor_dist / t_high.max(0.1)).clamp(0.5, 0.95);
-                boundaries.push((start_idx, i + 1, conf, kind));
-                gradual_start = None;
-                gradual_accum = 0.0;
-            }
-        } else {
-            gradual_start = None;
-            gradual_accum = 0.0;
-        }
-    }
-
-    build_postprocessed_shots(&metrics, &boundaries, total_duration, fps, config)
+    detector.last_nonblack = metrics
+        .iter()
+        .rposition(|m| m.mean_luma >= config.black_frame_luma);
+    detector.metrics = metrics;
+    detector.detect(total_duration, fps, true)
 }
 
 /// Neural detector (`--shots neural`):
@@ -374,11 +303,8 @@ fn run_transnetv2_ort(frames: &[RgbaFrame], model_path: &Path) -> Result<Vec<f32
     use ort::session::Session;
     use ort::value::TensorRef;
 
-    let env = ort::init().build().map_err(|e| AeError::Model {
-        model: "transnetv2".into(),
-        message: e.to_string(),
-    })?;
-    let mut session = Session::builder(&env)
+    let env = ae_core::onnx_environment()?;
+    let mut session = Session::builder(env)
         .map_err(|e| AeError::Model {
             model: "transnetv2".into(),
             message: e.to_string(),
@@ -414,10 +340,12 @@ fn run_transnetv2_ort(frames: &[RgbaFrame], model_path: &Path) -> Result<Vec<f32
             model: "transnetv2".into(),
             message: e.to_string(),
         })?;
-        let outputs = session.run(ort::inputs![tensor]).map_err(|e| AeError::Model {
-            model: "transnetv2".into(),
-            message: e.to_string(),
-        })?;
+        let outputs = session
+            .run(ort::inputs![tensor])
+            .map_err(|e| AeError::Model {
+                model: "transnetv2".into(),
+                message: e.to_string(),
+            })?;
 
         if let Some((_, val)) = outputs.iter().next()
             && let Ok((_, slice)) = val.try_extract_tensor::<f32>()
