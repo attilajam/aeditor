@@ -11,7 +11,7 @@ pub use frame::{
     FrameMut, FrameRef, LinearRgbaFrame, RgbaFrame, bt709_u8_to_linear, bt709_u8_to_linear_lut,
     linear_to_bt709_u8,
 };
-pub use models::{ModelEntry, ModelManifest};
+pub use models::{ModelEntry, ModelManifest, onnx_environment};
 pub use time::Rational;
 pub use types::{
     Beat, BeatMode, FreqBand, Resolution, SeparationMode, SequenceOrder, Shot, ShotBoundaryKind,

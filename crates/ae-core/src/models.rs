@@ -1,10 +1,24 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::error::{AeError, Result};
+
+/// ONNX Runtime permits one environment per process, which must outlive every model.
+pub fn onnx_environment() -> Result<&'static ort::environment::Environment> {
+    static ENVIRONMENT: OnceLock<std::result::Result<ort::environment::Environment, String>> =
+        OnceLock::new();
+    ENVIRONMENT
+        .get_or_init(|| ort::init().build().map_err(|error| error.to_string()))
+        .as_ref()
+        .map_err(|message| AeError::Model {
+            model: "ONNX Runtime".into(),
+            message: message.clone(),
+        })
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ModelEntry {
@@ -58,5 +72,23 @@ impl ModelManifest {
             });
         }
         Ok(file_path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn onnx_environment_is_shared_across_calls_and_threads() {
+        let environment = onnx_environment().unwrap();
+        std::thread::scope(|scope| {
+            for _ in 0..8 {
+                scope.spawn(move || {
+                    assert!(std::ptr::eq(environment, onnx_environment().unwrap()));
+                });
+            }
+        });
+        assert!(std::ptr::eq(environment, onnx_environment().unwrap()));
     }
 }

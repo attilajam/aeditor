@@ -6,6 +6,8 @@
 # App caches (analysis, previews, draft slots)
 /.ae-cache/
 **/.ae-cache/
+/.ae-project/
+**/.ae-project/
 
 # Clips / media inputs — never commit source footage
 *.mp4

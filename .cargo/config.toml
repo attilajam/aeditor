@@ -1,0 +1,3 @@
+[alias]
+check-fast = "check --locked --profile agent --quiet --all-targets"
+test-fast = "test --locked --profile agent --quiet"

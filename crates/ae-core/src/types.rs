@@ -234,14 +234,18 @@ impl FromStr for FreqBand {
     type Err = AeError;
     fn from_str(s: &str) -> Result<Self> {
         let (lo_s, hi_s) = s.trim().split_once('-').ok_or_else(|| {
-            AeError::Config(format!("invalid frequency band '{s}': expected LOW-HIGH (e.g. 30-250)"))
+            AeError::Config(format!(
+                "invalid frequency band '{s}': expected LOW-HIGH (e.g. 30-250)"
+            ))
         })?;
         let low_hz: f32 = lo_s
             .trim()
             .parse()
             .map_err(|_| AeError::Config(format!("invalid low frequency in '{s}'")))?;
         let high_hz: f32 = hi_s
-            .trim().trim_end_matches("hz").trim_end_matches("Hz")
+            .trim()
+            .trim_end_matches("hz")
+            .trim_end_matches("Hz")
             .parse()
             .map_err(|_| AeError::Config(format!("invalid high frequency in '{s}'")))?;
         if low_hz <= 5.0 || high_hz <= low_hz || high_hz > 10_000.0 {
