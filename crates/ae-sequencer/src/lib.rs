@@ -19,6 +19,9 @@ pub struct SequencerConfig {
     pub overlap_penalty: f32,
     pub pattern_penalty: f32,
     pub luma_jump_penalty: f32,
+    /// When true, clips may be reused once every available clip has been used once
+    /// (round robin). Neighbouring clips are always kept distinct.
+    pub allow_reuse: bool,
     pub resolution: Resolution,
     pub fps: Rational,
     pub source_video: String,
@@ -29,7 +32,10 @@ impl Default for SequencerConfig {
     fn default() -> Self {
         Self {
             order: SequenceOrder::Similarity,
-            allow_speed: SpeedRange { min: 0.85, max: 1.20 },
+            allow_speed: SpeedRange {
+                min: 0.85,
+                max: 1.20,
+            },
             beam_width: 32,
             hnsw_top_k: 16,
             seed: 42,
@@ -37,6 +43,7 @@ impl Default for SequencerConfig {
             overlap_penalty: 0.65,
             pattern_penalty: 0.35,
             luma_jump_penalty: 0.20,
+            allow_reuse: false,
             resolution: Resolution::P1080,
             fps: Rational::from_secs(30),
             source_video: String::new(),
@@ -57,6 +64,8 @@ struct BeamState {
     score: f32,
     slots: Vec<TimelineSlot>,
     last_out_desc: FrameDescriptor,
+    /// Distinct shot ids already used in the current round-robin round.
+    round_in_use: Vec<usize>,
 }
 
 /// Sequence shots onto beat intervals to maximize visual match-cut similarity across every cut.
@@ -81,7 +90,10 @@ pub fn sequence_timeline(
     // Build beat slot intervals [dst_start, dst_end, beat_strength, is_downbeat]
     let mut intervals: Vec<(Rational, Rational, f32, bool)> = Vec::new();
     if active_beats.is_empty() {
-        let total = shots.last().map(|s| s.end).unwrap_or(Rational::from_secs(5));
+        let total = shots
+            .last()
+            .map(|s| s.end)
+            .unwrap_or(Rational::from_secs(5));
         intervals.push((Rational::ZERO, total, 0.5, true));
     } else {
         if active_beats[0].time > Rational::from_millis(250) {
@@ -136,14 +148,15 @@ pub fn sequence_timeline(
         });
     }
 
+    // Size of one round-robin cycle: every shootable clip exactly once.
+    let pool_size = candidates
+        .iter()
+        .map(|c| c.shot_id)
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+
     // Build HNSW index (`hnsw_rs`) over all candidate incoming frame embeddings
-    let hnsw = Hnsw::<f32, DistCosine>::new(
-        16,
-        candidates.len().max(16),
-        16,
-        100,
-        DistCosine {},
-    );
+    let hnsw = Hnsw::<f32, DistCosine>::new(16, candidates.len().max(16), 16, 100, DistCosine {});
     for (cand_idx, cand) in candidates.iter().enumerate() {
         let emb = &bank.by_shot[cand.shot_id][cand.in_desc_idx].combined_embedding;
         hnsw.insert((emb.as_slice(), cand_idx));
@@ -184,6 +197,7 @@ pub fn sequence_timeline(
                     locked: false,
                 }],
                 last_out_desc: out_desc,
+                round_in_use: vec![cand.shot_id],
             });
         }
     }
@@ -213,10 +227,15 @@ pub fn sequence_timeline(
                 locked: false,
             }],
             last_out_desc: out_desc,
+            round_in_use: vec![best_shot.id],
         });
     }
 
-    beam.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    beam.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     beam.truncate(beam_w);
 
     // Advance beam search across remaining beat intervals
@@ -226,43 +245,27 @@ pub fn sequence_timeline(
         let slot_dur = dst_end - dst_start;
         let mut next_beam: Vec<BeamState> = Vec::with_capacity(beam.len() * 8);
 
-        for state in &beam {
-            let prev_slot = state.slots.last().expect("non-empty slots");
-
-            // Retrieve top-k visually nearest incoming frame candidates from HNSW
-            let neighbours = hnsw.search(
-                &state.last_out_desc.combined_embedding,
-                config.hnsw_top_k.min(candidates.len()),
-                (config.hnsw_top_k * 2).max(64),
-            );
-
-            let mut evaluated = 0usize;
-            for nb in &neighbours {
-                let cand = &candidates[nb.d_id];
-                if let Some(next_state) = evaluate_transition(
-                    state,
-                    prev_slot,
-                    cand,
-                    slot_idx,
-                    dst_start,
-                    dst_end,
-                    slot_dur,
-                    beat_strength,
-                    is_downbeat,
-                    shots,
-                    bank,
-                    policy,
-                    config,
-                    &mut rng,
-                ) {
-                    next_beam.push(next_state);
-                    evaluated += 1;
-                }
+        // First pass only consumes clips that are still unused in this round. If that
+        // dead-ends while round-robin reuse is enabled, a second pass reopens the pool
+        // (neighbouring repeats stay forbidden in both passes).
+        for relax_rounds in [false, true] {
+            if relax_rounds && !(config.allow_reuse && next_beam.is_empty()) {
+                break;
             }
 
-            // Fallback if HNSW shortlist had no valid duration/order matches
-            if evaluated == 0 {
-                for cand in &candidates {
+            for state in &beam {
+                let prev_slot = state.slots.last().expect("non-empty slots");
+
+                // Retrieve top-k visually nearest incoming frame candidates from HNSW
+                let neighbours = hnsw.search(
+                    &state.last_out_desc.combined_embedding,
+                    config.hnsw_top_k.min(candidates.len()),
+                    (config.hnsw_top_k * 2).max(64),
+                );
+
+                let mut evaluated = 0usize;
+                for nb in &neighbours {
+                    let cand = &candidates[nb.d_id];
                     if let Some(next_state) = evaluate_transition(
                         state,
                         prev_slot,
@@ -277,11 +280,44 @@ pub fn sequence_timeline(
                         bank,
                         policy,
                         config,
+                        pool_size,
+                        relax_rounds,
                         &mut rng,
                     ) {
                         next_beam.push(next_state);
+                        evaluated += 1;
                     }
                 }
+
+                // Fallback if HNSW shortlist had no valid duration/order matches
+                if evaluated == 0 {
+                    for cand in &candidates {
+                        if let Some(next_state) = evaluate_transition(
+                            state,
+                            prev_slot,
+                            cand,
+                            slot_idx,
+                            dst_start,
+                            dst_end,
+                            slot_dur,
+                            beat_strength,
+                            is_downbeat,
+                            shots,
+                            bank,
+                            policy,
+                            config,
+                            pool_size,
+                            relax_rounds,
+                            &mut rng,
+                        ) {
+                            next_beam.push(next_state);
+                        }
+                    }
+                }
+            }
+
+            if !next_beam.is_empty() && !relax_rounds {
+                break;
             }
         }
 
@@ -298,11 +334,17 @@ pub fn sequence_timeline(
         }
     }
 
-    let best = beam.into_iter().next().ok_or(AeError::InsufficientFootage {
-        audio_secs: intervals.last().map(|i| i.1.as_secs_f64()).unwrap_or(0.0),
-        footage_secs: shots.iter().map(|s| s.usable_duration().as_secs_f64()).sum(),
-        missing_slots: 1,
-    })?;
+    let best = beam
+        .into_iter()
+        .next()
+        .ok_or(AeError::InsufficientFootage {
+            audio_secs: intervals.last().map(|i| i.1.as_secs_f64()).unwrap_or(0.0),
+            footage_secs: shots
+                .iter()
+                .map(|s| s.usable_duration().as_secs_f64())
+                .sum(),
+            missing_slots: 1,
+        })?;
 
     let total_duration = best
         .slots
@@ -349,10 +391,35 @@ fn evaluate_transition(
     bank: &ShotDescriptorBank,
     policy: &dyn TransitionPolicy,
     config: &SequencerConfig,
+    pool_size: usize,
+    relax_rounds: bool,
     rng: &mut ChaCha8Rng,
 ) -> Option<BeamState> {
-    // Never reuse any clip/shot that has already been placed in the timeline
-    if state.slots.iter().any(|s| s.shot_id == cand.shot_id) {
+    // Neighbouring clips must never be identical, even when reuse is enabled.
+    if cand.shot_id == prev_slot.shot_id {
+        return None;
+    }
+
+    let mut round_in_use = if config.allow_reuse {
+        state.round_in_use.clone()
+    } else {
+        Vec::new()
+    };
+
+    if config.allow_reuse {
+        // A forced relaxation (only used when the beam dead-ends) starts a fresh round.
+        if relax_rounds {
+            round_in_use.clear();
+        }
+        if round_in_use.contains(&cand.shot_id) {
+            // The pool only reopens after every shootable clip has been used once this round.
+            if round_in_use.len() < pool_size {
+                return None;
+            }
+            round_in_use.clear();
+        }
+        round_in_use.push(cand.shot_id);
+    } else if state.slots.iter().any(|s| s.shot_id == cand.shot_id) {
         return None;
     }
 
@@ -372,7 +439,9 @@ fn evaluate_transition(
 
     // Fast O(1) multi-modal descriptor similarity (cosine Oklab + 64-bit pHash + motion vector)
     // in the beam search inner loop so sequencing 250+ scenes & 150+ beats finishes in < 5ms!
-    let boundary_sim = bank.similarity(&state.last_out_desc, in_desc).clamp(0.0, 1.0);
+    let boundary_sim = bank
+        .similarity(&state.last_out_desc, in_desc)
+        .clamp(0.0, 1.0);
 
     // Compute luma jump penalty
     let mut penalty = 0.0f32;
@@ -389,13 +458,7 @@ fn evaluate_transition(
     let jitter: f32 = rng.random_range(-1e-4..1e-4);
     let step_score = boundary_sim - penalty + jitter;
 
-    let trans = policy.select(
-        slot_idx,
-        boundary_sim,
-        beat_strength,
-        is_downbeat,
-        slot_dur,
-    );
+    let trans = policy.select(slot_idx, boundary_sim, beat_strength, is_downbeat, slot_dur);
 
     let mut slots = state.slots.clone();
     slots.push(TimelineSlot {
@@ -416,6 +479,7 @@ fn evaluate_transition(
         score: state.score + step_score,
         slots,
         last_out_desc: out_desc,
+        round_in_use,
     })
 }
 
@@ -456,6 +520,7 @@ pub fn rank_alternative_shots_for_slot(
     timeline: &Timeline,
     slot_index: usize,
     top_k: usize,
+    allow_reuse: bool,
 ) -> Vec<(usize, f32)> {
     let used: std::collections::HashSet<usize> = timeline
         .slots
@@ -465,6 +530,12 @@ pub fn rank_alternative_shots_for_slot(
         .map(|(_, s)| s.shot_id)
         .collect();
 
+    let prev_shot_id = slot_index
+        .checked_sub(1)
+        .and_then(|idx| timeline.slots.get(idx))
+        .map(|s| s.shot_id);
+    let next_shot_id = timeline.slots.get(slot_index + 1).map(|s| s.shot_id);
+
     let prev_out_desc = if slot_index > 0
         && let Some(prev) = timeline.slots.get(slot_index - 1)
     {
@@ -473,13 +544,49 @@ pub fn rank_alternative_shots_for_slot(
         None
     };
 
+    let next_in_desc = timeline
+        .slots
+        .get(slot_index + 1)
+        .and_then(|next| bank.descriptor_at(next.shot_id, next.src_in));
+
     let mut scored: Vec<(usize, f32)> = shots
         .iter()
-        .filter(|s| s.enabled && !used.contains(&s.id))
+        .filter(|s| s.enabled)
+        .filter(|s| {
+            if allow_reuse {
+                Some(s.id) != prev_shot_id && Some(s.id) != next_shot_id
+            } else {
+                !used.contains(&s.id)
+            }
+        })
         .map(|s| {
-            let sim = match (prev_out_desc, bank.by_shot.get(s.id).and_then(|v| v.first())) {
-                (Some(out_d), Some(in_d)) => {
-                    0.75 * bank.similarity(out_d, in_d) + 0.25 * bank.ms_ssim_similarity(out_d, in_d)
+            let descs = bank.by_shot.get(s.id);
+            let sim = match (prev_out_desc, descs) {
+                (Some(out_d), Some(ds)) if !ds.is_empty() => {
+                    // Rank against the actual outgoing descriptor of the previous
+                    // clip: pick the candidate in-point that cuts best, not just
+                    // the first descriptor.
+                    let in_d = ds
+                        .iter()
+                        .max_by(|a, b| {
+                            bank.similarity(out_d, a)
+                                .partial_cmp(&bank.similarity(out_d, b))
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .expect("non-empty descriptors");
+                    let in_score = 0.75 * bank.similarity(out_d, in_d)
+                        + 0.25 * bank.ms_ssim_similarity(out_d, in_d);
+                    match next_in_desc {
+                        Some(next_d) => {
+                            // Also honor the outgoing boundary: the candidate's
+                            // likely out-point is its descriptor nearest usable_end.
+                            let cand_out = bank.descriptor_at(s.id, s.usable_end).unwrap_or(in_d);
+                            let out_score = 0.75 * bank.similarity(cand_out, next_d)
+                                + 0.25 * bank.ms_ssim_similarity(cand_out, next_d);
+                            0.5 * in_score + 0.5 * out_score
+                        }
+                        None => in_score,
+                    }
                 }
                 _ => s.cut_confidence,
             };
@@ -543,9 +650,8 @@ mod tests {
             frames.push(RgbaFrame::solid(64, 36, c, start));
         }
 
-        let bank =
-            build_descriptor_bank_from_frames(&frames, &shots, &SimilarityConfig::default())
-                .unwrap();
+        let bank = build_descriptor_bank_from_frames(&frames, &shots, &SimilarityConfig::default())
+            .unwrap();
 
         let beats: Vec<Beat> = (0..6)
             .map(|i| Beat {
@@ -614,6 +720,251 @@ mod tests {
             tl1.mean_boundary_similarity,
             mean_rand,
             2.0 * std_rand
+        );
+    }
+
+    #[test]
+    fn test_round_robin_reuse_toggle() {
+        let colors: [[u8; 4]; 4] = [
+            [230, 30, 30, 255],
+            [30, 220, 40, 255],
+            [30, 50, 230, 255],
+            [230, 200, 30, 255],
+        ];
+
+        let mut shots = Vec::new();
+        let mut frames = Vec::new();
+        for (i, &c) in colors.iter().enumerate() {
+            let start = Rational::from_secs(i as i64);
+            let end = Rational::from_secs((i + 1) as i64);
+            shots.push(Shot {
+                id: i,
+                start,
+                end,
+                usable_start: start,
+                usable_end: end,
+                cut_confidence: 1.0,
+                boundary_kind: ShotBoundaryKind::HardCut,
+                mean_luma: 0.4,
+                enabled: true,
+                locked: false,
+            });
+            frames.push(RgbaFrame::solid(64, 36, c, start));
+        }
+
+        let bank = build_descriptor_bank_from_frames(&frames, &shots, &SimilarityConfig::default())
+            .unwrap();
+
+        // 15 beats every 500ms -> 14 half-second slots, far more than the 4-clip pool.
+        let beats: Vec<Beat> = (0..15)
+            .map(|i| Beat {
+                index: i,
+                time: Rational::from_millis(i as i64 * 500),
+                strength: 0.7,
+                bass_freq_hz: 80.0,
+                is_downbeat: i % 4 == 0,
+                enabled: true,
+                is_manual: false,
+            })
+            .collect();
+
+        let no_reuse = sequence_timeline_default(
+            &shots,
+            &beats,
+            &bank,
+            &SequencerConfig {
+                seed: 7,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(
+            no_reuse.slots.len() <= colors.len(),
+            "default config must never reuse a clip"
+        );
+        let unique: std::collections::HashSet<_> =
+            no_reuse.slots.iter().map(|s| s.shot_id).collect();
+        assert_eq!(unique.len(), no_reuse.slots.len());
+
+        let with_reuse = sequence_timeline_default(
+            &shots,
+            &beats,
+            &bank,
+            &SequencerConfig {
+                seed: 7,
+                allow_reuse: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        assert!(
+            with_reuse.slots.len() > no_reuse.slots.len(),
+            "round-robin reuse must fill slots left empty when reuse is off"
+        );
+        assert!(
+            with_reuse.slots.len() >= colors.len() * 2,
+            "expected several rounds, got {} slots",
+            with_reuse.slots.len()
+        );
+
+        // No two neighbouring clips may be the same.
+        for w in with_reuse.slots.windows(2) {
+            assert_ne!(
+                w[0].shot_id, w[1].shot_id,
+                "adjacent slots must never share a clip"
+            );
+        }
+
+        // The pool only reopens after every clip has been used once.
+        let first_round: std::collections::HashSet<_> = with_reuse
+            .slots
+            .iter()
+            .take(colors.len())
+            .map(|s| s.shot_id)
+            .collect();
+        assert_eq!(
+            first_round.len(),
+            colors.len(),
+            "every clip must appear before the first reuse"
+        );
+    }
+
+    fn continuity_desc(shot_id: usize, pos: [f32; 2], motion: [f32; 2]) -> FrameDescriptor {
+        // Appearance signals held identical so only continuity decides.
+        let mut emb = vec![0.0f32; 64];
+        emb[0] = 1.0;
+        FrameDescriptor {
+            shot_id,
+            pts: Rational::ZERO,
+            oklab_thumb: vec![0.5; 192],
+            oklab_stats: [0.5, 0.0, 0.0, 0.1, 0.0, 0.0],
+            phash: vec![0xA5u8; 8],
+            motion_vec: motion,
+            mean_luma: 0.4,
+            subject_pos: pos,
+            combined_embedding: emb,
+            ssim_thumb_rgba: vec![128u8; 32 * 18 * 4],
+        }
+    }
+
+    fn continuity_shot(id: usize) -> Shot {
+        let start = Rational::from_secs(id as i64 * 10);
+        Shot {
+            id,
+            start,
+            end: start + Rational::from_secs(10),
+            usable_start: start,
+            usable_end: start + Rational::from_secs(10),
+            cut_confidence: 0.5,
+            boundary_kind: ShotBoundaryKind::HardCut,
+            mean_luma: 0.4,
+            enabled: true,
+            locked: false,
+        }
+    }
+
+    fn continuity_slot(
+        slot_index: usize,
+        shot_id: usize,
+        start_secs: i64,
+        end_secs: i64,
+    ) -> TimelineSlot {
+        TimelineSlot {
+            slot_index,
+            dst_start: Rational::from_secs(start_secs),
+            dst_end: Rational::from_secs(end_secs),
+            shot_id,
+            src_in: Rational::from_secs(shot_id as i64 * 10),
+            src_out: Rational::from_secs(shot_id as i64 * 10 + 1),
+            speed: 1.0,
+            transition_in: ae_core::TransitionSpec::default(),
+            boundary_similarity: 1.0,
+            beat_strength: 0.7,
+            locked: false,
+        }
+    }
+
+    #[test]
+    fn test_rank_alternatives_prefers_position_and_motion_compatible_clip() {
+        // Previous clip ends with subject screen-left moving right.
+        // Candidate 1 matches on both signals; candidate 2 jumps screen-right
+        // and moves in the opposite direction.
+        let shots: Vec<Shot> = (0..3).map(continuity_shot).collect();
+        let bank = ShotDescriptorBank {
+            by_shot: vec![
+                vec![continuity_desc(0, [0.3, 0.5], [0.3, 0.0])],
+                vec![continuity_desc(1, [0.32, 0.5], [0.28, 0.02])],
+                vec![continuity_desc(2, [0.8, 0.5], [-0.3, 0.0])],
+            ],
+            ..Default::default()
+        };
+        let timeline = Timeline {
+            version: 1,
+            source_video: String::new(),
+            source_audio: String::new(),
+            resolution: Resolution::P1080,
+            fps: Rational::from_secs(30),
+            total_duration: Rational::from_secs(2),
+            mean_boundary_similarity: 1.0,
+            slots: vec![continuity_slot(0, 0, 0, 1), continuity_slot(1, 2, 1, 2)],
+        };
+
+        let ranked = rank_alternative_shots_for_slot(&shots, &bank, &timeline, 1, 2, false);
+        assert_eq!(ranked.len(), 2);
+        assert_eq!(
+            ranked[0].0, 1,
+            "position/motion-compatible clip must rank first: {ranked:?}"
+        );
+        assert!(
+            ranked[0].1 > ranked[1].1 + 0.02,
+            "scores must separate compatible from clashing cuts: {ranked:?}"
+        );
+    }
+
+    #[test]
+    fn test_rank_alternatives_preserves_repetition_rules() {
+        let shots: Vec<Shot> = (0..4).map(continuity_shot).collect();
+        let bank = ShotDescriptorBank {
+            by_shot: (0..4)
+                .map(|id| vec![continuity_desc(id, [0.5, 0.5], [0.0, 0.0])])
+                .collect(),
+            ..Default::default()
+        };
+        let timeline = Timeline {
+            version: 1,
+            source_video: String::new(),
+            source_audio: String::new(),
+            resolution: Resolution::P1080,
+            fps: Rational::from_secs(30),
+            total_duration: Rational::from_secs(3),
+            mean_boundary_similarity: 1.0,
+            slots: vec![
+                continuity_slot(0, 0, 0, 1),
+                continuity_slot(1, 1, 1, 2),
+                continuity_slot(2, 2, 2, 3),
+            ],
+        };
+
+        // Without reuse, every other used clip is excluded (the slot's own
+        // current occupant stays eligible so the popover can keep it).
+        let ranked = rank_alternative_shots_for_slot(&shots, &bank, &timeline, 1, 8, false);
+        let mut ids: Vec<usize> = ranked.iter().map(|(id, _)| *id).collect();
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            vec![1, 3],
+            "only the current occupant and the unused clip may be suggested: {ranked:?}"
+        );
+
+        // With reuse, neighbours stay forbidden but unused non-neighbours return.
+        let ranked_reuse = rank_alternative_shots_for_slot(&shots, &bank, &timeline, 1, 8, true);
+        let mut ids_reuse: Vec<usize> = ranked_reuse.iter().map(|(id, _)| *id).collect();
+        ids_reuse.sort_unstable();
+        assert_eq!(
+            ids_reuse,
+            vec![1, 3],
+            "neighbouring clips must never repeat: {ranked_reuse:?}"
         );
     }
 }
