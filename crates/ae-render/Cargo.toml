@@ -17,6 +17,10 @@ sha2.workspace = true
 hex.workspace = true
 toml.workspace = true
 tracing.workspace = true
+ort.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = { workspace = true, features = ["coreml"] }
 
 [dev-dependencies]
 tempfile.workspace = true

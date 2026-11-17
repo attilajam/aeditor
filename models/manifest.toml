@@ -29,3 +29,35 @@ url = "https://huggingface.co/Qdrant/clip-ViT-B-32-vision/resolve/main/model.onn
 sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 license = "MIT"
 description = "Semantic image embedding model"
+
+[models.yunet]
+name = "YuNet Face Detector (640x640)"
+filename = "yunet.onnx"
+url = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+sha256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+license = "Apache-2.0"
+description = "Lightweight face detector for opt-in face-following reframe crop (--reframe-faces). Fixed 640x640 BGR input; per-stride bbox/cls/obj heads decoded per OpenCV FaceDetectorYN (score sqrt(cls*obj)). Verified 2026-10-31 against upstream export (232589 bytes)"
+
+[models.anime_character]
+name = "Anime Character Detector (YOLOX-s)"
+filename = "anime_character.onnx"
+url = "https://raw.githubusercontent.com/ksasao/anime-character-detector/main/docs/character.onnx"
+sha256 = "6b600e405d3b9d4b457b6d5bcb3c9c6fea0e60385b734caaf9d075ed7a12b622"
+license = "Apache-2.0"
+description = "Full-character detection for animated subject locking, including turned or hidden faces. YOLOX-s, RGB 640x640 input padded with 114; raw [1,8400,6] output. Source and model: https://github.com/ksasao/anime-character-detector"
+
+[models.anime_identity_features]
+name = "CCIP Anime Identity Feature Encoder"
+filename = "anime_identity_features.onnx"
+url = "https://huggingface.co/deepghs/ccip_onnx/resolve/eb2acdd29af1703388d3d0c04221add322bc9110/ccip-caformer-24-randaug-pruned/model_feat.onnx"
+sha256 = "4ea118d16496274f4f6e08d3afc768cc592389e8f7f32f8732ce2215c228ac5f"
+license = "OpenRAIL"
+description = "CCIP character feature encoder for single-character RGB crops; 384x384 input and 768-dimensional features"
+
+[models.anime_identity_metric]
+name = "CCIP Anime Identity Distance Metric"
+filename = "anime_identity_metric.onnx"
+url = "https://huggingface.co/deepghs/ccip_onnx/resolve/eb2acdd29af1703388d3d0c04221add322bc9110/ccip-caformer-24-randaug-pruned/model_metrics.onnx"
+sha256 = "7e4646fdfbe369ad485b227ec47ac4092c98b8deef3af44e19fdbd8ba7bc25c1"
+license = "OpenRAIL"
+description = "CCIP pairwise character feature distance model, paired with anime_identity_features"
