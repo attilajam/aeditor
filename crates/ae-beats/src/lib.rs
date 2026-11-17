@@ -63,7 +63,12 @@ pub fn decode_audio_mono_22050(path: &Path) -> Result<(Vec<f32>, Rational)> {
             FormatOptions::default(),
             MetadataOptions::default(),
         )
-        .map_err(|e| AeError::Audio(format!("symphonia probe failed for {}: {e}", path.display())))?;
+        .map_err(|e| {
+            AeError::Audio(format!(
+                "symphonia probe failed for {}: {e}",
+                path.display()
+            ))
+        })?;
 
     let track = format
         .default_track(TrackType::Audio)
@@ -71,7 +76,11 @@ pub fn decode_audio_mono_22050(path: &Path) -> Result<(Vec<f32>, Rational)> {
     let track_id = track.id;
     let audio_params = match &track.codec_params {
         Some(CodecParameters::Audio(params)) => params.clone(),
-        _ => return Err(AeError::Audio("selected track has no audio parameters".into())),
+        _ => {
+            return Err(AeError::Audio(
+                "selected track has no audio parameters".into(),
+            ));
+        }
     };
     let in_sr = audio_params.sample_rate.unwrap_or(44_100);
     let channels = audio_params
@@ -116,10 +125,8 @@ pub fn decode_audio_mono_22050(path: &Path) -> Result<(Vec<f32>, Rational)> {
 
     // Resample to ANALYSIS_SR (22,050 Hz) using rubato 5.0 Fft synchronous resampler
     let in_len = mono_samples.len();
-    let input_buf =
-        InterleavedOwned::<f32>::new_from(mono_samples, 1, in_len).map_err(|e| {
-            AeError::Audio(format!("failed creating rubato input adapter: {e}"))
-        })?;
+    let input_buf = InterleavedOwned::<f32>::new_from(mono_samples, 1, in_len)
+        .map_err(|e| AeError::Audio(format!("failed creating rubato input adapter: {e}")))?;
 
     let mut resampler = Fft::<f32>::new(
         in_sr as usize,
@@ -160,7 +167,9 @@ pub fn detect_bass_beats_from_samples(
             match run_demucs_bass_ort(mono_22k, model_path) {
                 Ok(stem) => stem,
                 Err(e) => {
-                    tracing::warn!("HTDemucs ONNX fallback ({e}): using harmonic-sustain bass isolator");
+                    tracing::warn!(
+                        "HTDemucs ONNX fallback ({e}): using harmonic-sustain bass isolator"
+                    );
                     bandpass_biquad(mono_22k, config.bass_band)
                 }
             }
@@ -219,7 +228,9 @@ pub fn detect_bass_beats_from_samples(
     let beats = match config.beat_mode {
         BeatMode::Onsets => raw_onsets,
         BeatMode::Grid => regularize_ellis_dp_grid(&odf, &dominant_hz, duration, config),
-        BeatMode::Hybrid => regularize_hybrid_grid(&odf, &raw_onsets, &dominant_hz, duration, config),
+        BeatMode::Hybrid => {
+            regularize_hybrid_grid(&odf, &raw_onsets, &dominant_hz, duration, config)
+        }
     };
 
     if let Some(ref debug_dir) = config.debug_dir {
@@ -266,9 +277,7 @@ fn compute_stft(samples: &[f32], win_size: usize, hop_size: usize) -> Vec<Vec<f3
 
     // Hann window
     let window: Vec<f32> = (0..win_size)
-        .map(|i| {
-            0.5 * (1.0 - (2.0 * std::f32::consts::PI * (i as f32) / (win_size as f32)).cos())
-        })
+        .map(|i| 0.5 * (1.0 - (2.0 * std::f32::consts::PI * (i as f32) / (win_size as f32)).cos()))
         .collect();
 
     // Causal alignment: frame `f` starts at `f * hop_size` (with a tiny 1-hop pre-roll)
@@ -391,15 +400,20 @@ fn separate_harmonic_bass(
             .sum::<f32>()
             / ((future_end - future_start).max(1) as f32);
 
-        let cur_bin_energy: f32 = (best_bin.saturating_sub(1).max(b_low)..=(best_bin + 1).min(b_high))
+        let cur_bin_energy: f32 = (best_bin.saturating_sub(1).max(b_low)
+            ..=(best_bin + 1).min(b_high))
             .map(|b| spec[t][b])
             .sum();
 
         let sustain_ratio = future_bin_energy / (cur_bin_energy + 1e-6);
-        let harmonic_ratio = total_h_energy / (total_h_energy + total_p_energy + hf_energy * 0.5 + 1e-6);
+        let harmonic_ratio =
+            total_h_energy / (total_h_energy + total_p_energy + hf_energy * 0.5 + 1e-6);
 
         // Gate is near 1.0 when the note sustains at a stable bass pitch, and near 0.0 for transient kicks
-        let gate = if sustain_ratio < 0.28 || harmonic_ratio < 0.42 || hf_energy > bass_raw_energy * 0.85 {
+        let gate = if sustain_ratio < 0.28
+            || harmonic_ratio < 0.42
+            || hf_energy > bass_raw_energy * 0.85
+        {
             0.0
         } else {
             ((sustain_ratio - 0.25) * 2.0).clamp(0.0, 1.0) * harmonic_ratio
@@ -442,8 +456,8 @@ fn compute_bass_odf(harmonic_bass: &[Vec<f32>], percussive_gate: &[f32]) -> Vec<
     }
 
     let mut odf = vec![0.0f32; n_frames];
-    for t in mu..n_frames {
-        let ref_t = t - mu;
+    for t in 0..n_frames {
+        let ref_t = t.saturating_sub(mu);
         let mut superflux = 0.0f32;
         let mut pitch_flux = 0.0f32;
 
@@ -453,16 +467,22 @@ fn compute_bass_odf(harmonic_bass: &[Vec<f32>], percussive_gate: &[f32]) -> Vec<
             // 3-bin max filter on reference frame to suppress vibrato
             let k_lo = k.saturating_sub(1);
             let k_hi = (k + 1).min(n_bins - 1);
-            let ref_max = (k_lo..=k_hi)
-                .map(|j| log_mag[ref_t][j])
-                .fold(0.0f32, f32::max);
+            // Before the clip starts, the reference is silence so the first attack is retained.
+            let ref_max = if t >= mu {
+                (k_lo..=k_hi)
+                    .map(|j| log_mag[ref_t][j])
+                    .fold(0.0f32, f32::max)
+            } else {
+                0.0
+            };
 
             let diff = log_mag[t][k] - ref_max;
             if diff > 0.0 {
                 superflux += diff;
             }
 
-            let p_diff = norm_pitch[t][k] - norm_pitch[ref_t][k];
+            let ref_pitch = if t >= mu { norm_pitch[ref_t][k] } else { 0.0 };
+            let p_diff = norm_pitch[t][k] - ref_pitch;
             if p_diff > 0.0 {
                 pitch_flux += p_diff;
             }
@@ -495,18 +515,17 @@ fn pick_onset_peaks(
         return Vec::new();
     }
 
-    let min_gap_frames = ((config.min_cut.as_secs_f64() * (ANALYSIS_SR as f64))
-        / (STFT_HOP as f64))
-        .round()
+    let min_gap_frames = ((config.min_cut.as_secs_f64() * (ANALYSIS_SR as f64)) / (STFT_HOP as f64))
+        .ceil()
         .max(1.0) as usize;
     let win = 15usize; // ~150ms local threshold context
 
     let mut beats: Vec<Beat> = Vec::new();
     let mut last_frame: Option<usize> = None;
 
-    for i in 1..(n.saturating_sub(1)) {
+    for i in 0..n {
         let v = odf[i];
-        if v < 0.08 || v < odf[i - 1] || v < odf[i + 1] {
+        if v < 0.08 || (i > 0 && v <= odf[i - 1]) || (i + 1 < n && v < odf[i + 1]) {
             continue;
         }
 
@@ -563,7 +582,11 @@ fn regularize_ellis_dp_grid(
     duration: Rational,
     config: &BeatDetectorConfig,
 ) -> Vec<Beat> {
-    let n = odf.len();
+    // End the grid at observed bass activity instead of extending it through trailing silence.
+    let Some(last_onset) = odf.iter().rposition(|&v| v >= 0.08) else {
+        return Vec::new();
+    };
+    let n = last_onset + 1;
     if n < 10 {
         return pick_onset_peaks(odf, dominant_hz, duration, config);
     }
@@ -571,7 +594,9 @@ fn regularize_ellis_dp_grid(
     let hop_sec = (STFT_HOP as f64) / (ANALYSIS_SR as f64);
     // Search lags between 60 BPM (1.0s = ~100 hops) and 180 BPM (0.333s = ~33 hops)
     let min_lag = ((0.33 / hop_sec).round() as usize).max(4);
-    let max_lag = ((1.0 / hop_sec).round() as usize).min(n / 2).max(min_lag + 1);
+    let max_lag = ((1.0 / hop_sec).round() as usize)
+        .min(n / 2)
+        .max(min_lag + 1);
 
     let mut best_lag = ((0.5 / hop_sec).round() as usize).clamp(min_lag, max_lag);
     let mut best_ac = -1.0f32;
@@ -590,7 +615,7 @@ fn regularize_ellis_dp_grid(
         }
     }
 
-    let min_gap = ((config.min_cut.as_secs_f64() / hop_sec).round() as usize).max(4);
+    let min_gap = ((config.min_cut.as_secs_f64() / hop_sec).ceil() as usize).max(4);
     let tau = best_lag.max(min_gap) as f32;
     let alpha = 1.8f32;
 
@@ -628,7 +653,11 @@ fn regularize_ellis_dp_grid(
     // Backtrack from best ending frame in the last beat period
     let tail_start = n.saturating_sub(hi_search);
     let mut cur = (tail_start..n)
-        .max_by(|&a, &b| dp[a].partial_cmp(&dp[b]).unwrap_or(std::cmp::Ordering::Equal))
+        .max_by(|&a, &b| {
+            dp[a]
+                .partial_cmp(&dp[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
         .unwrap_or(n - 1);
 
     let mut frames = vec![cur];
@@ -687,14 +716,16 @@ fn regularize_hybrid_grid(
     }
 
     let tol_sec = config.hybrid_snap_tolerance_ms / 1000.0;
-    let mut out = Vec::with_capacity(onsets.len());
+    let mut out: Vec<Beat> = Vec::with_capacity(onsets.len());
 
     for (idx, onset) in onsets.iter().enumerate() {
         let t = onset.time.as_secs_f64();
-        let nearest = subdiv_ticks
-            .iter()
-            .copied()
-            .min_by(|a, b| (a - t).abs().partial_cmp(&(b - t).abs()).unwrap_or(std::cmp::Ordering::Equal));
+        let nearest = subdiv_ticks.iter().copied().min_by(|a, b| {
+            (a - t)
+                .abs()
+                .partial_cmp(&(b - t).abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let snapped_t = match nearest {
             Some(nt) if (nt - t).abs() <= tol_sec => {
@@ -704,9 +735,18 @@ fn regularize_hybrid_grid(
             _ => t,
         };
 
+        // Keep snapping from crowding this marker or the next onset.
+        let mut time = Rational::from_secs_f64(snapped_t).min(duration);
+        if let Some(prev) = out.last() {
+            time = time.max(prev.time + config.min_cut);
+        }
+        if let Some(next) = onsets.get(idx + 1) {
+            time = time.min(next.time - config.min_cut);
+        }
+
         out.push(Beat {
             index: idx,
-            time: Rational::from_secs_f64(snapped_t).min(duration),
+            time,
             strength: onset.strength,
             bass_freq_hz: onset.bass_freq_hz,
             is_downbeat: idx % 4 == 0,
@@ -818,11 +858,7 @@ impl BeatAnalysisSession {
 
         if !manual.is_empty() {
             let min_gap = config.min_cut;
-            auto_beats.retain(|ab| {
-                !manual
-                    .iter()
-                    .any(|mb| (ab.time - mb.time).abs() < min_gap)
-            });
+            auto_beats.retain(|ab| !manual.iter().any(|mb| (ab.time - mb.time).abs() < min_gap));
             auto_beats.extend(manual);
             auto_beats.sort_by_key(|b| b.time);
             for (i, b) in auto_beats.iter_mut().enumerate() {
@@ -904,11 +940,8 @@ fn run_demucs_bass_ort(mono_22k: &[f32], model_path: &Path) -> Result<Vec<f32>> 
     use ort::session::Session;
     use ort::value::TensorRef;
 
-    let env = ort::init().build().map_err(|e| AeError::Model {
-        model: "htdemucs".into(),
-        message: e.to_string(),
-    })?;
-    let mut session = Session::builder(&env)
+    let env = ae_core::onnx_environment()?;
+    let mut session = Session::builder(env)
         .map_err(|e| AeError::Model {
             model: "htdemucs".into(),
             message: e.to_string(),
@@ -930,10 +963,12 @@ fn run_demucs_bass_ort(mono_22k: &[f32], model_path: &Path) -> Result<Vec<f32>> 
         model: "htdemucs".into(),
         message: e.to_string(),
     })?;
-    let outputs = session.run(ort::inputs![tensor]).map_err(|e| AeError::Model {
-        model: "htdemucs".into(),
-        message: e.to_string(),
-    })?;
+    let outputs = session
+        .run(ort::inputs![tensor])
+        .map_err(|e| AeError::Model {
+            model: "htdemucs".into(),
+            message: e.to_string(),
+        })?;
 
     if let Some((_, val)) = outputs.iter().next()
         && let Ok((_, slice)) = val.try_extract_tensor::<f32>()
@@ -1011,7 +1046,11 @@ pub fn write_debug_artifacts(
     let mut mixed = mono_22k.to_vec();
     for beat in beats {
         let start_idx = (beat.time.as_secs_f64() * (ANALYSIS_SR as f64)).round() as usize;
-        let freq = if beat.is_downbeat { 1400.0f32 } else { 950.0f32 };
+        let freq = if beat.is_downbeat {
+            1400.0f32
+        } else {
+            950.0f32
+        };
         let click_samples = (ANALYSIS_SR as usize) / 25; // 40ms click
         for i in 0..click_samples {
             if let Some(s) = mixed.get_mut(start_idx + i) {
@@ -1085,7 +1124,9 @@ pub fn generate_synthetic_bass_and_kick_wav(
                 let t = (i as f32) / (sr as f32);
                 let env = (-t * 110.0).exp();
                 // Pitch drops rapidly from 150 Hz to 45 Hz + broadband click
-                let phase = 2.0 * std::f32::consts::PI * (45.0 * t + (105.0 / 90.0) * (1.0 - (-90.0 * t).exp()));
+                let phase = 2.0
+                    * std::f32::consts::PI
+                    * (45.0 * t + (105.0 / 90.0) * (1.0 - (-90.0 * t).exp()));
                 let click = (2.0 * std::f32::consts::PI * 950.0 * t).sin()
                     + (2.0 * std::f32::consts::PI * 1650.0 * t).sin();
                 *dst += env * (0.55 * phase.sin() + 0.45 * click) * 0.65;
@@ -1116,6 +1157,157 @@ pub fn generate_synthetic_bass_and_kick_wav(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn onsets_include_clip_edges_without_repeating_flat_peaks() {
+        let mut odf = vec![0.0; 80];
+        odf[0] = 1.0;
+        odf[1] = 1.0;
+        odf[79] = 1.0;
+        let beats = pick_onset_peaks(
+            &odf,
+            &vec![80.0; odf.len()],
+            Rational::from_secs_f64(1.0),
+            &BeatDetectorConfig::default(),
+        );
+        assert_eq!(beats.len(), 2, "{beats:?}");
+        assert_eq!(beats[0].time, Rational::ZERO);
+        assert_eq!(
+            beats[1].time,
+            Rational::from_secs_f64((79 * STFT_HOP) as f64 / ANALYSIS_SR as f64)
+        );
+    }
+
+    #[test]
+    fn onset_spacing_respects_min_cut_between_hops() {
+        let config = BeatDetectorConfig::default();
+        let mut odf = vec![0.0; 80];
+        for frame in [5, 30, 55] {
+            odf[frame] = 1.0;
+        }
+        let beats = pick_onset_peaks(
+            &odf,
+            &vec![80.0; odf.len()],
+            Rational::from_secs_f64(1.0),
+            &config,
+        );
+        assert_eq!(beats.len(), 2, "{beats:?}");
+        assert!(
+            beats
+                .windows(2)
+                .all(|w| w[1].time - w[0].time >= config.min_cut)
+        );
+    }
+
+    #[test]
+    fn hybrid_snapping_preserves_minimum_onset_spacing() {
+        let config = BeatDetectorConfig::default();
+        let mut odf = vec![0.0; 300];
+        for frame in [50, 98, 146, 194, 242] {
+            odf[frame] = 1.0;
+        }
+        let mut onset_odf = vec![0.0; odf.len()];
+        for frame in [48, 74, 100] {
+            onset_odf[frame] = 1.0;
+        }
+        let dominant_hz = vec![80.0; odf.len()];
+        let duration = Rational::from_secs_f64(3.0);
+        let onsets = pick_onset_peaks(&onset_odf, &dominant_hz, duration, &config);
+        assert_eq!(onsets.len(), 3);
+        let beats = regularize_hybrid_grid(&odf, &onsets, &dominant_hz, duration, &config);
+        assert_eq!(beats.len(), onsets.len());
+        assert!(
+            beats
+                .windows(2)
+                .all(|w| w[1].time - w[0].time >= config.min_cut),
+            "{beats:?}"
+        );
+    }
+
+    #[test]
+    fn grid_does_not_invent_beats_in_silence() {
+        let samples = vec![0.0; ANALYSIS_SR as usize];
+        let duration = Rational::from_secs_f64(1.0);
+        let config = BeatDetectorConfig {
+            beat_mode: BeatMode::Grid,
+            ..Default::default()
+        };
+        assert!(
+            detect_bass_beats_from_samples(&samples, duration, &config)
+                .unwrap()
+                .is_empty()
+        );
+        let mut session = BeatAnalysisSession::from_samples(samples, duration);
+        let manual = Beat {
+            index: 0,
+            time: Rational::from_millis(500),
+            strength: 1.0,
+            bass_freq_hz: 80.0,
+            is_downbeat: true,
+            enabled: false,
+            is_manual: true,
+        };
+        let beats = session
+            .recompute_beats(&config, std::slice::from_ref(&manual))
+            .unwrap();
+        assert_eq!(beats.len(), 1, "{beats:?}");
+        assert_eq!(beats[0].time, manual.time);
+        assert!(beats[0].is_manual);
+        assert!(!beats[0].enabled);
+        assert!(session.ghost_peaks.is_empty());
+    }
+
+    #[test]
+    fn grid_stops_at_the_last_bass_onset() {
+        let mut odf = vec![0.0; 500];
+        for frame in [50, 100, 150, 200] {
+            odf[frame] = 1.0;
+        }
+        let beats = regularize_ellis_dp_grid(
+            &odf,
+            &vec![80.0; odf.len()],
+            Rational::from_secs_f64(5.0),
+            &BeatDetectorConfig::default(),
+        );
+        assert_eq!(beats.len(), 4, "{beats:?}");
+        assert!(
+            (beats.last().unwrap().time.as_secs_f64()
+                - (200 * STFT_HOP) as f64 / ANALYSIS_SR as f64)
+                .abs()
+                < 1e-6
+        );
+    }
+
+    #[test]
+    fn bass_attack_at_clip_start_is_detected_by_file_and_editor_paths() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("initial_bass.wav");
+        let notes = [(0.0, 65.41), (0.5, 82.41), (1.0, 98.0)];
+        generate_synthetic_bass_and_kick_wav(&path, 2.0, &notes, &[]).unwrap();
+        let mut session = BeatAnalysisSession::from_audio_file(&path).unwrap();
+        for mode in [BeatMode::Onsets, BeatMode::Grid, BeatMode::Hybrid] {
+            let config = BeatDetectorConfig {
+                beat_mode: mode,
+                ..Default::default()
+            };
+            let beats = detect_bass_beats(&path, &config).unwrap();
+            let editor_beats = session.recompute_beats(&config, &[]).unwrap();
+            assert_eq!(beats.len(), notes.len(), "{mode:?}: {beats:?}");
+            assert_eq!(
+                editor_beats.len(),
+                beats.len(),
+                "{mode:?}: {editor_beats:?}"
+            );
+            for ((beat, editor_beat), &(expected, _)) in beats.iter().zip(&editor_beats).zip(&notes)
+            {
+                assert!(
+                    (beat.time.as_secs_f64() - expected).abs() <= 0.020,
+                    "{mode:?}: {beat:?}"
+                );
+                assert_eq!(beat.time, editor_beat.time);
+            }
+        }
+    }
 
     #[test]
     fn test_bass_onsets_within_20ms_and_kicks_rejected_in_hpss_and_demucs() {
@@ -1170,7 +1362,9 @@ mod tests {
             // Verify none of the kick-only hits were reported
             for &kick_t in &kick_hits {
                 assert!(
-                    beats.iter().all(|b| (b.time.as_secs_f64() - kick_t).abs() > 0.10),
+                    beats
+                        .iter()
+                        .all(|b| (b.time.as_secs_f64() - kick_t).abs() > 0.10),
                     "mode {:?}: kick-only hit at {:.2}s was falsely reported!",
                     sep,
                     kick_t
