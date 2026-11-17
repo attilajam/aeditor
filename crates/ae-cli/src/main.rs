@@ -121,6 +121,15 @@ pub struct Cli {
     #[arg(long = "dry-run")]
     pub dry_run: bool,
 
+    /// Opt-in face locking with zoom margin (aspect-preserving, centered fallback
+    /// when no face model is available); default rendering stays stretched
+    #[arg(long = "reframe-faces")]
+    pub reframe_faces: bool,
+
+    /// Optional YuNet-style ONNX face model for --reframe-faces
+    #[arg(long = "face-model")]
+    pub face_model: Option<PathBuf>,
+
     /// Disable reading/writing `.ae-cache`
     #[arg(long = "no-cache")]
     pub no_cache: bool,
@@ -226,6 +235,10 @@ pub fn run_cli(cli: Cli) -> Result<()> {
                 crf: 18,
                 preset: "fast".to_string(),
                 use_gpu: cli.gpu,
+                quality_enhance: false,
+                light_cleanup: false,
+                reframe_faces: cli.reframe_faces,
+                face_model_path: cli.face_model.clone(),
                 shaders_dir: Some(cli.shaders_dir.clone()),
                 cache_capacity: 16,
                 progress_cb: None,
@@ -299,7 +312,7 @@ pub fn run_cli(cli: Cli) -> Result<()> {
     };
     let beat_cache_key = cache.file_cache_key(
         audio_path,
-        "beats_v1",
+        "beats_v2",
         &format!(
             "{:?}_{}_{:?}_{:?}",
             beat_cfg.separation, beat_cfg.bass_band, beat_cfg.beat_mode, beat_cfg.min_cut
@@ -325,7 +338,7 @@ pub fn run_cli(cli: Cli) -> Result<()> {
     };
     let sim_cache_key = cache.file_cache_key(
         video_path,
-        "descriptors_v1",
+        "descriptors_v2_continuity",
         &format!("{:?}_{}", sim_cfg.mode, shots.len()),
     )?;
     let bank: ShotDescriptorBank = if let Some(cached) = cache.get(&sim_cache_key) {
@@ -386,6 +399,10 @@ pub fn run_cli(cli: Cli) -> Result<()> {
         crf: 18,
         preset: "fast".to_string(),
         use_gpu: cli.gpu,
+        quality_enhance: false,
+        light_cleanup: false,
+        reframe_faces: cli.reframe_faces,
+        face_model_path: cli.face_model.clone(),
         shaders_dir: Some(cli.shaders_dir.clone()),
         cache_capacity: 16,
         progress_cb: None,
@@ -470,6 +487,8 @@ mod tests {
             from_timeline: None,
             models_dir: PathBuf::from("../../models"),
             dry_run: false,
+            reframe_faces: false,
+            face_model: None,
             no_cache: true,
         };
 
@@ -521,6 +540,8 @@ mod tests {
             from_timeline: Some(timeline_json),
             models_dir: PathBuf::from("../../models"),
             dry_run: false,
+            reframe_faces: false,
+            face_model: None,
             no_cache: true,
         };
         run_cli(cli_from_tl).unwrap();
